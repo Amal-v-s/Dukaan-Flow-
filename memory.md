@@ -287,8 +287,14 @@ Every agent and developer working on this codebase must adhere strictly to these
     * `POST /api/v1/ai/summarize-business`: verified live `MODE: ai_explanation` with 7-day brief and review action targets.
     * `POST /api/v1/ai/draft-reminder`: verified live `MODE: ai_draft` with customer name, non-sent state, and review notice.
   - Automated test suite remains 100% green: **80 passed in 1.13s**.
-* **Known release gaps:** The demo uses in-memory state and has no authentication or tenant authorization. The provider implementation uses the Gemini API key REST endpoint (disabled unless configured), not Vertex AI credentials. External notification delivery remains disabled. These must be addressed before production release; Phase 3 release evaluation, full end-to-end coverage, and cross-tenant authorization checks remain outstanding.
-* **Next Active Phase:** Phase 3 release hardening: production authenticated tenant boundaries and persistent Firestore integration.
+* **Known release gaps (updated after Firestore work):** JWT authentication and tenant-scoped Firestore storage are now implemented when configured. The no-project local fallback remains in-memory. Firestore emulator/integration verification has not run in this environment. The current compatibility store embeds some child collections (customer credit entries, bill payments, plan installments) and request batches do not yet provide transaction isolation against concurrent payment updates. The provider implementation uses the Gemini API key REST endpoint, not Vertex AI credentials; external notification delivery remains disabled.
+* **Next Active Phase:** Phase 4D follow-up: verify against Firestore emulator/staging, normalize embedded financial child records, and add transactional concurrency handling before production use.
+
+### Firestore Integration Work Log
+* **Status:** IN PROGRESS, implementing the approved Firestore persistence plan.
+* **Milestone 1:** Added project/database configuration, fail-closed Firestore initialization, tenant-scoped document wrappers for the current service data model, and a user repository with indexed email lookup and transactional account/business/membership creation. JWT remains the application auth method.
+* **Milestone 2:** Connected authenticated JWT business/user context to scoped persistence; added per-tenant in-memory fallback isolation, Firestore request write coalescing/read-your-writes with a safe 450-document batch cap, demo tenant seeding/reset scoping, persistent audit/idempotency/scenario/import/preferences data, Firestore setup docs, SDK dependencies, and emulator-gated test coverage. Expense import was capped at 400 rows to fit atomic Firestore writes.
+* **Verification:** `python -m pytest backend/tests/test_firestore_persistence.py backend/tests/test_phase3_features.py backend/tests/test_money.py -q`: **33 passed, 1 skipped** (emulator test skipped because SDK/emulator are unavailable). `python -m compileall -q backend/app`, `git diff --check`, frontend production build: passed. Full backend suite attempted but blocked by the environment's Starlette `TestClient` hang (reproduced on the public `/health/live` endpoint); Phase 2 test files were not edited.
 
 ---
 

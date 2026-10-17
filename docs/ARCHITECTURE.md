@@ -59,10 +59,13 @@ mutate records or determine financial totals.
 The Phase 3 demo implements this as a server-side Gemini adapter behind
 `backend/app/services/ai/`. It is optional, uses strict structured
 output validation, bounded requests, metadata-only logging, and
-deterministic fallback text. CSV imports use staged in-memory batches
-and require explicit confirmation. The current demo still lacks
-authentication, tenant authorization, and persistent storage; these are
-release blockers for real business data.
+deterministic fallback text. CSV imports use staged batches and require
+explicit confirmation. The backend supports JWT authentication and
+tenant-scoped Firestore storage when `GOOGLE_CLOUD_PROJECT` and server
+credentials are configured. Local development without a project uses
+isolated in-memory tenant state. Firestore access uses server-side
+Application Default Credentials; the browser never receives privileged
+database credentials.
 
 ## 3. Data Flow for a Repayment
 

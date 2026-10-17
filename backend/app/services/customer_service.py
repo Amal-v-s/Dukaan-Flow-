@@ -14,6 +14,7 @@ from app.schemas.customer import (
 )
 from app.services.seed_data import seed_service
 from app.services.phase2_service import allocate_unplanned_repayment
+from app.core.tenant_context import get_business_id, get_user_id
 
 
 class CustomerService:
@@ -147,7 +148,7 @@ class CustomerService:
     def add_ledger_entry(self, customer_id: str, req: LedgerEntryCreateRequest) -> LedgerEntryDTO:
         if getattr(req, "idempotency_key", None):
             from app.services.audit_service import audit_service
-            cached = audit_service.check_idempotency("biz_demo_kirana", req.idempotency_key)
+            cached = audit_service.check_idempotency(get_business_id(), req.idempotency_key)
             if cached:
                 return LedgerEntryDTO(**cached)
 
@@ -224,15 +225,15 @@ class CustomerService:
 
         from app.services.audit_service import audit_service
         audit_service.log_event(
-            business_id="biz_demo_kirana",
-            actor_id="user",
+            business_id=get_business_id(),
+            actor_id=get_user_id(),
             action="ledger_entry_created",
             entity_type="ledger_entry",
             entity_id=new_entry["id"],
             metadata={"customer_id": customer_id, "entry_type": req.entry_type, "amount_paise": req.amount_paise},
         )
         if getattr(req, "idempotency_key", None):
-            audit_service.record_idempotency("biz_demo_kirana", req.idempotency_key, dto.model_dump())
+            audit_service.record_idempotency(get_business_id(), req.idempotency_key, dto.model_dump())
 
         return dto
 
@@ -241,8 +242,8 @@ class CustomerService:
         customer_id: str,
         entry_id: str,
         reason: str,
-        business_id: str = "biz_demo_kirana",
-        actor_id: str = "user",
+        business_id: Optional[str] = None,
+        actor_id: Optional[str] = None,
     ) -> LedgerEntryDTO:
         """Create a non-destructive compensating reversal entry for an existing ledger entry."""
         customers = seed_service.get_customers()
@@ -298,8 +299,8 @@ class CustomerService:
 
         from app.services.audit_service import audit_service
         audit_service.log_event(
-            business_id=business_id,
-            actor_id=actor_id,
+            business_id=business_id or get_business_id(),
+            actor_id=actor_id or get_user_id(),
             action="ledger_entry_reversed",
             entity_type="ledger_entry",
             entity_id=reversal_id,

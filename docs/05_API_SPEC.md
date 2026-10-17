@@ -265,6 +265,6 @@ AI assistance: `POST /api/v1/ai/explain-forecast`, `POST /api/v1/ai/explain-aler
 
 CSV exports: `GET /api/v1/exports/{customers|ledger|supplier-bills|supplier-payments|expenses|repayment-plans|budgets|reports}`. Date filters are `from_date` and `to_date`; report export requires both.
 
-Expense import: `GET /api/v1/imports/templates/expenses`, `POST /api/v1/imports/preview`, `GET /api/v1/imports/{batch_id}`, `POST /api/v1/imports/{batch_id}/confirm`, and `POST /api/v1/imports/{batch_id}/cancel`. Import requests carry UTF-8 CSV text in a JSON body, limited to one megabyte and one thousand rows.
+Expense import: `GET /api/v1/imports/templates/expenses`, `POST /api/v1/imports/preview`, `GET /api/v1/imports/{batch_id}`, `POST /api/v1/imports/{batch_id}/confirm`, and `POST /api/v1/imports/{batch_id}/cancel`. Import requests carry UTF-8 CSV text in a JSON body, limited to one megabyte and 400 rows so each confirmation fits within an atomic Firestore write batch.
 
 Notification preferences: `GET/PATCH /api/v1/notification-preferences`. External delivery is disabled. Phase 3 routes use the existing in-memory single-business demo store; authentication and tenant membership enforcement remain unimplemented and are required before production use.

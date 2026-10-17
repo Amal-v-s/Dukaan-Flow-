@@ -30,6 +30,7 @@ class Settings(BaseModel):
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "dukaanflow-insecure-dev-secret-key-change-in-production")
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_SECONDS: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_SECONDS", str(3600 * 8)))  # 8 hours
+    FIRESTORE_DATABASE_ID: str = os.getenv("FIRESTORE_DATABASE_ID", "(default)")
 
 
 settings = Settings()
