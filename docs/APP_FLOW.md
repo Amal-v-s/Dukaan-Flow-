@@ -82,3 +82,11 @@ More
 3. Review overdue instalments, expense budgets, threshold alerts, and date-filtered reports.
 4. Acknowledge due-soon and overdue customer/supplier reminders in-app. No WhatsApp or SMS is sent.
 5. Dashboard surfaces next scheduled instalments, overdue plan count, and budget alert count. Forecast substitutes allocated debt collections with scheduled instalment dates and labels them estimates.
+
+## 10. AI Assistance and Data Import (Phase 3)
+
+1. From Cash Flow, request an explanation of an alert or deterministic forecast. The screen keeps calculated values visible and labels AI versus fallback prose.
+2. From Business Management, refresh a period brief or request a repayment reminder draft. Review and edit the draft before copying it; generating a draft does not send a message.
+3. Export supported records and reports as versioned CSV using server-side date filters.
+4. Import expenses through Choose file → Validate and preview → Review rows → Confirm import → Result. Preview never writes records; invalid rows block confirmation.
+5. Adjust in-app reminder lead time and categories in Business Management. External delivery remains disabled.

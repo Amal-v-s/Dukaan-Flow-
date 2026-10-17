@@ -8,6 +8,7 @@ import { CashFlowPage } from './features/cashflow/CashFlowPage'
 import { SimulatorPage } from './features/simulator/SimulatorPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { ManagementPage } from './features/management/ManagementPage'
+import { ImportWizardPage } from './features/imports/ImportWizardPage'
 
 export function App() {
   return (
@@ -22,6 +23,7 @@ export function App() {
           <Route path="/simulator" element={<SimulatorPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/management" element={<ManagementPage />} />
+          <Route path="/imports" element={<ImportWizardPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

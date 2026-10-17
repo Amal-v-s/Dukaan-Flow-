@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { name: 'Cash Flow', to: '/cash-flow', icon: LineChart },
   { name: 'What-If Simulator', to: '/simulator', icon: SlidersHorizontal },
   { name: 'Business Management', to: '/management', icon: ClipboardList },
+  { name: 'Import Expenses', to: '/imports', icon: ClipboardList },
   { name: 'Settings', to: '/settings', icon: Settings },
 ]
 

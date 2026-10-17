@@ -103,3 +103,11 @@ model-provided URLs, code, or database queries.
     unnecessarily.
 -   Evaluate hallucination rate and grounding on a fixed set of business
     scenarios before release.
+
+## 10. Phase 3 Demo Implementation
+
+- The backend-only Gemini REST adapter is configured with `AI_FEATURES_ENABLED`, `GEMINI_API_KEY`, and `GEMINI_MODEL`; keep the key in server environment/Secret Manager. AI is disabled by default.
+- Current supported calls explain deterministic alerts/forecasts, summarize the business brief, and draft a customer reminder. Drafts always require merchant review; no delivery provider is connected.
+- Each call receives a minimized server-built fact package. Customer notes and ledger notes are omitted. Structured model output is validated, source IDs are limited to supplied IDs, URLs and numeric claims in generated prose are rejected, and failures return deterministic fallback content.
+- Interaction logs retain only request ID, use case, outcome, provider, and latency. Prompts and outputs are not logged.
+- This is an in-memory demo with no authentication or tenant membership enforcement. Do not expose it to production users until the authorization boundary in this specification is implemented.

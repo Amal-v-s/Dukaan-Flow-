@@ -258,3 +258,13 @@ These Phase 2 endpoints currently use the process-local demo store. Repayment-pl
 -   `422`: schema validation failure
 -   `429`: rate limit exceeded
 -   `500`: generic unexpected failure
+
+## Phase 3 Demo Endpoints
+
+AI assistance: `POST /api/v1/ai/explain-forecast`, `POST /api/v1/ai/explain-alert/{alert_id}`, `POST /api/v1/ai/summarize-business`, and `POST /api/v1/ai/draft-reminder`.
+
+CSV exports: `GET /api/v1/exports/{customers|ledger|supplier-bills|supplier-payments|expenses|repayment-plans|budgets|reports}`. Date filters are `from_date` and `to_date`; report export requires both.
+
+Expense import: `GET /api/v1/imports/templates/expenses`, `POST /api/v1/imports/preview`, `GET /api/v1/imports/{batch_id}`, `POST /api/v1/imports/{batch_id}/confirm`, and `POST /api/v1/imports/{batch_id}/cancel`. Import requests carry UTF-8 CSV text in a JSON body, limited to one megabyte and one thousand rows.
+
+Notification preferences: `GET/PATCH /api/v1/notification-preferences`. External delivery is disabled. Phase 3 routes use the existing in-memory single-business demo store; authentication and tenant membership enforcement remain unimplemented and are required before production use.

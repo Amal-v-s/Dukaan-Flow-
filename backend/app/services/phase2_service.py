@@ -187,12 +187,15 @@ def update_budget(budget_id: str, payload: dict) -> dict:
 
 def reminders() -> list[dict]:
     store=_store().setdefault("reminders",{}); now=today(); due=[]
+    preferences=_store().setdefault("notification_preferences", {"lead_time_days": 7, "customer_instalments_enabled": True, "supplier_bills_enabled": True})
+    reminder_horizon=now+timedelta(days=preferences.get("lead_time_days",7))
     for p in list_plans():
+        if not preferences.get("customer_instalments_enabled", True): continue
         for i in p["installments"]:
             rem=i["amount_paise"]-i["paid_amount_paise"]
-            if rem and date.fromisoformat(i["due_date"]) <= now+timedelta(days=7): due.append(("customer_instalment",i["id"],p["customer_name"],i["due_date"],rem,p["id"]))
+            if rem and date.fromisoformat(i["due_date"]) <= reminder_horizon: due.append(("customer_instalment",i["id"],p["customer_name"],i["due_date"],rem,p["id"]))
     for bill in seed_service.get_supplier_bills():
-        if bill["remaining_amount_paise"] and date.fromisoformat(bill["due_date"]) <= now+timedelta(days=7): due.append(("supplier_bill",bill["id"],bill["supplier_name"],bill["due_date"],bill["remaining_amount_paise"],bill["id"]))
+        if preferences.get("supplier_bills_enabled", True) and bill["remaining_amount_paise"] and date.fromisoformat(bill["due_date"]) <= reminder_horizon: due.append(("supplier_bill",bill["id"],bill["supplier_name"],bill["due_date"],bill["remaining_amount_paise"],bill["id"]))
     for typ,src,title,due_date,amount,parent in due:
         key=f"{typ}:{src}:{due_date}"
         store.setdefault(key,{"id":f"rem_{uuid4().hex[:10]}","type":typ,"source_id":src,"parent_id":parent,"title":title,"due_date":due_date,"amount_paise":amount,"status":"unread"})

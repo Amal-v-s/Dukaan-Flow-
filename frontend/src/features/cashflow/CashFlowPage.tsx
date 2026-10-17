@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ShieldAlert, ChevronRight, SlidersHorizontal, Info } from 'lucide-react'
+import { ShieldAlert, ChevronRight, SlidersHorizontal, Info, Sparkles } from 'lucide-react'
 import { formatPaiseToINR, formatDate } from '../../lib/formatters'
 import { StatusPill } from '../../components/ui/StatusPill'
 
@@ -57,6 +57,20 @@ export const CashFlowPage: React.FC = () => {
   const [alerts, setAlerts] = useState<CashAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
+  const [aiExplanation, setAiExplanation] = useState<{ summary: string; reasons: string[]; disclaimer: string; mode: string; generated_at: string; suggested_actions: Array<{ label: string; type: string }> } | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+
+  const requestExplanation = async (alertId?: string) => {
+    setAiLoading(true); setAiError('')
+    try {
+      const response = await fetch(alertId ? `/api/v1/ai/explain-alert/${encodeURIComponent(alertId)}` : '/api/v1/ai/explain-forecast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, ...(!alertId ? { body: JSON.stringify({ horizon_days: forecast?.horizon_days ?? 14 }) } : {}) })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error?.message || 'Could not create an explanation')
+      setAiExplanation(data)
+    } catch (e) { setAiError(e instanceof Error ? e.message : 'AI explanation is unavailable') }
+    finally { setAiLoading(false) }
+  }
 
   useEffect(() => {
     const fetchForecastAndAlerts = async () => {
@@ -131,18 +145,10 @@ export const CashFlowPage: React.FC = () => {
                   </div>
                 </div>
 
-                <Link
-                  to="/simulator"
-                  className={`px-3.5 py-2 rounded-lg text-white text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0 self-end sm:self-auto ${
-                    alert.severity === 'critical'
-                      ? 'bg-[#DC5555] hover:bg-[#B91C1C]'
-                      : 'bg-[#E9A23B] hover:bg-[#D97706]'
-                  }`}
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                  <span>Test in What-If Simulator</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+                  <button disabled={aiLoading} onClick={() => void requestExplanation(alert.id)} className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold text-[#496BC3] disabled:opacity-50"><Sparkles className="mr-1 inline h-3.5 w-3.5" />Explain alert</button>
+                  <Link to="/simulator" className={`px-3.5 py-2 rounded-lg text-white text-xs font-bold transition-colors flex items-center gap-1.5 ${alert.severity === 'critical' ? 'bg-[#DC5555] hover:bg-[#B91C1C]' : 'bg-[#E9A23B] hover:bg-[#D97706]'}`}><SlidersHorizontal className="w-3.5 h-3.5" /><span>Test in What-If Simulator</span><ChevronRight className="w-3.5 h-3.5" /></Link>
+                </div>
               </div>
 
               {/* Attribution and Actionable Tips */}
@@ -218,8 +224,13 @@ export const CashFlowPage: React.FC = () => {
               {formatPaiseToINR(minBalance)}
             </span>
           </div>
+          <button disabled={aiLoading} onClick={() => void requestExplanation()} className="rounded-lg border border-[#DCE5FA] bg-[#F4F7FF] px-3 py-2 text-xs font-semibold text-[#496BC3] disabled:opacity-50"><Sparkles className="mr-1 inline h-3.5 w-3.5" />{aiLoading ? 'Preparing…' : 'Explain forecast'}</button>
         </div>
       </div>
+
+      {(aiError || aiExplanation) && <section className="rounded-xl border border-[#DCE5FA] bg-[#F7F9FF] p-4" aria-live="polite">
+        {aiError ? <p role="alert" className="text-sm text-[#B91C1C]">{aiError}</p> : aiExplanation && <><div className="flex items-center justify-between gap-3"><span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#496BC3]"><Sparkles className="h-3.5 w-3.5" />{aiExplanation.mode === 'ai_explanation' ? 'AI explanation' : 'Explanation fallback'}</span><button onClick={() => void requestExplanation()} className="text-xs font-semibold text-[#496BC3] underline">Try again</button></div><p className="mt-2 text-sm font-semibold text-[#17191C]">{aiExplanation.summary}</p>{aiExplanation.reasons.map((reason, index) => <p className="mt-1 text-xs text-[#737780]" key={index}>• {reason}</p>)}{aiExplanation.suggested_actions.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{aiExplanation.suggested_actions.map((action, i) => { const target = action.type === 'supplier_bill' ? '/suppliers' : action.type === 'customer' ? '/customers' : action.type === 'budget' ? '/management' : action.type === 'simulator' ? '/simulator' : '/cash-flow'; return <Link key={i} className="rounded-md border border-[#DCE5FA] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#496BC3]" to={target}>{action.label}</Link> })}</div>}<p className="mt-2 text-[11px] text-[#737780]">{aiExplanation.disclaimer} Deterministic figures above remain authoritative. Generated {new Date(aiExplanation.generated_at).toLocaleString()}.</p></>}
+      </section>}
 
       {/* Visual Chart Bars / Trajectory */}
       <div className="bg-white rounded-xl border border-[#E8EAED] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">

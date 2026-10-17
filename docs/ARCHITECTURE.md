@@ -56,6 +56,14 @@ returns the same output. No network calls or LLM dependency.
 Receives precomputed facts and returns explanatory prose. It cannot
 mutate records or determine financial totals.
 
+The Phase 3 demo implements this as a server-side Gemini adapter behind
+`backend/app/services/ai/`. It is optional, uses strict structured
+output validation, bounded requests, metadata-only logging, and
+deterministic fallback text. CSV imports use staged in-memory batches
+and require explicit confirmation. The current demo still lacks
+authentication, tenant authorization, and persistent storage; these are
+release blockers for real business data.
+
 ## 3. Data Flow for a Repayment
 
 1.  Request arrives with authenticated user.

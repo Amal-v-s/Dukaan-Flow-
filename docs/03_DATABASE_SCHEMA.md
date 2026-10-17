@@ -240,3 +240,7 @@ configuration to source control.
     reverse them and retain audit metadata.
 -   Ensure a payment cannot exceed the outstanding bill or customer
     balance unless an explicit credit policy is defined.
+
+## 6. Phase 3 Demo-Only Operational Records
+
+The current in-memory demo adds metadata-only `ai_interaction_logs`, staged `import_batches`, and `notification_preferences` under `SeedService` state. AI logs contain request ID, use case, result status, provider, and latency only. They do not retain prompts or model responses. Import batches retain normalized rows only until completion/cancellation; the raw CSV file is never stored. Confirmed expense rows carry `import_batch_id` and `import_row_number` provenance. Preferences include reminder lead time and enabled categories. These records are process-local and are cleared by demo reset; they are not a Firestore schema implementation.
