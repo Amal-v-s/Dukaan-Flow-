@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Plus, Search, X, CheckCircle2, AlertOctagon, Building2 } from 'lucide-react'
 import { formatPaiseToINR, formatDate, parseINRToPaise } from '../../lib/formatters'
 import { StatusPill } from '../../components/ui/StatusPill'
@@ -51,7 +51,7 @@ export const SuppliersPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [billsRes, supsRes] = await Promise.all([
         fetch('/api/v1/supplier-bills'),
@@ -73,11 +73,11 @@ export const SuppliersPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedSupplierId])
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    void fetchData()
+  }, [fetchData])
 
   const handleOpenPay = (bill: SupplierBill) => {
     setActiveBill(bill)

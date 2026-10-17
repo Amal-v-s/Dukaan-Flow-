@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from app.domain.forecast import generate_forecast
 from app.services.seed_data import seed_service
 from app.services.phase2_service import list_plans
+from app.services.forecast_movements import gather_forecast_movements
 
 router = APIRouter(prefix="/api/v1/cash-flow", tags=["Cash Flow Forecast"])
 
@@ -48,54 +49,8 @@ def get_forecast(horizon_days: int = Query(default=14, ge=1, le=60)):
     start_date = date.fromisoformat("2026-10-17")
     safety_buffer = biz.get("cash_safety_buffer_paise", 1500000)
 
-    # Gather future customer collections (inflows)
-    inflows = []
     plans = list_plans()
-    allocations = {}
-    for plan in plans:
-        if plan["status"] != "cancelled":
-            for source_id, amount in plan.get("source_allocations_paise", {}).items():
-                allocations[source_id] = allocations.get(source_id, 0) + amount
-    for c in customers:
-        for entry in c.get("credit_entries", []):
-            if entry.get("status", "posted") == "posted" and entry.get("entry_type") == "credit_sale":
-                d = entry.get("due_date")
-                if d:
-                    original_amount = max(0, entry["amount_paise"] - allocations.get(entry["id"], 0))
-                    if original_amount == 0:
-                        continue
-                    inflows.append({
-                        "date": d,
-                        "amount_paise": original_amount,
-                        "source_type": "customer_collection",
-                        "source_id": entry["id"],
-                        "description": f"{c['name']} (Repayment due)",
-                    })
-
-    # Scheduled plan instalments replace their allocated share of the source
-    # credit collection. They remain estimates and are never guaranteed cash.
-    for plan in plans:
-        if plan["status"] == "cancelled":
-            continue
-        for installment in plan["installments"]:
-            remaining = installment["amount_paise"] - installment["paid_amount_paise"]
-            if remaining > 0:
-                inflows.append({"date": installment["due_date"], "amount_paise": remaining, "source_type": "repayment_plan", "source_id": installment["id"], "description": f"{plan['customer_name']} scheduled instalment (estimate)"})
-
-    # Gather scheduled future supplier bills (outflows)
-    outflows = []
-    for b in bills:
-        remaining = b.get("remaining_amount_paise", 0)
-        if remaining > 0 and b.get("status") != "paid":
-            d = b.get("due_date")
-            if d:
-                outflows.append({
-                    "date": d,
-                    "amount_paise": remaining,
-                    "source_type": "supplier_bill",
-                    "source_id": b["id"],
-                    "description": f"{b['supplier_name']} - {b['description']}",
-                })
+    inflows, outflows = gather_forecast_movements(customers, bills, plans=plans)
 
     # Execute pure deterministic domain forecast engine
     result = generate_forecast(

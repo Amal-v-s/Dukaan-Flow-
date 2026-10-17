@@ -78,13 +78,24 @@ def get_dashboard():
         lowest_balance_date = "2026-10-20"
     safety_buffer = biz["cash_safety_buffer_paise"]
 
+    # Deterministic daily cash movements calculation
+    today_str = "2026-10-17"
+    today_income_paise = sum(
+        t.get("amount_paise", 0) for t in transactions
+        if t.get("date") == today_str and t.get("direction") == "inflow" and t.get("type") != "opening_balance"
+    )
+    today_expenses_paise = sum(
+        t.get("amount_paise", 0) for t in transactions
+        if t.get("date") == today_str and (t.get("direction") == "outflow" or t.get("type") in ("expense", "supplier_payment"))
+    )
+
     return DashboardResponse(
         currency="INR",
         available_cash_paise=available_cash,
         receivables_paise=total_receivables,
         payables_paise=total_payables,
-        today_income_paise=0,
-        today_expenses_paise=125000,
+        today_income_paise=today_income_paise,
+        today_expenses_paise=today_expenses_paise,
         forecast=ForecastSummary(
             horizon_days=14,
             lowest_balance_paise=lowest_balance_paise,

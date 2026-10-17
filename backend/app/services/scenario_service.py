@@ -7,12 +7,14 @@ RULES (from docs/01_PRD.md & docs/06_ENGINEERING_RULES.md):
 """
 
 import copy
+import re
 import uuid
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from app.domain.forecast import generate_forecast
+from app.services.forecast_movements import gather_forecast_movements
 from app.schemas.scenario import (
     ScenarioCreate,
     ScenarioDTO,
@@ -25,6 +27,14 @@ from app.schemas.scenario import (
 from app.services.seed_data import seed_service
 from app.core.tenant_context import get_business_id
 from app.core.config import settings
+
+
+def _ids_match(id1: Optional[str], id2: Optional[str]) -> bool:
+    if not id1 or not id2:
+        return False
+    if id1 == id2:
+        return True
+    return re.sub(r'_0+(\d+)', r'_\1', id1) == re.sub(r'_0+(\d+)', r'_\1', id2)
 
 
 class ScenarioService:
@@ -219,35 +229,8 @@ class ScenarioService:
         start_date = self._today()
         safety_buffer = biz_before.get("cash_safety_buffer_paise", 1500000)
 
-        # Build baseline collections (inflows)
-        baseline_inflows = []
-        for c in customers_before:
-            for entry in c.get("credit_entries", []):
-                if entry.get("status", "posted") == "posted" and entry.get("entry_type") == "credit_sale":
-                    d = entry.get("due_date")
-                    if d:
-                        baseline_inflows.append({
-                            "date": d,
-                            "amount_paise": entry["amount_paise"],
-                            "source_type": "customer_collection",
-                            "source_id": entry["id"],
-                            "description": f"{c['name']} (Repayment due)",
-                        })
-
-        # Build baseline supplier bills (outflows)
-        baseline_outflows = []
-        for b in bills_before:
-            remaining = b.get("remaining_amount_paise", 0)
-            if remaining > 0 and b.get("status") != "paid":
-                d = b.get("due_date")
-                if d:
-                    baseline_outflows.append({
-                        "date": d,
-                        "amount_paise": remaining,
-                        "source_type": "supplier_bill",
-                        "source_id": b["id"],
-                        "description": f"{b['supplier_name']} - {b['description']}",
-                    })
+        # Build baseline movements deterministically
+        baseline_inflows, baseline_outflows = gather_forecast_movements(customers_before, bills_before)
 
         # Run Baseline Forecast
         baseline_res = generate_forecast(
@@ -275,7 +258,7 @@ class ScenarioService:
                 found = False
                 if source_id:
                     for item in scenario_inflows:
-                        if item.get("source_id") == source_id:
+                        if _ids_match(item.get("source_id"), source_id):
                             item["date"] = scen_date
                             item["amount_paise"] = amt
                             found = True
@@ -293,7 +276,7 @@ class ScenarioService:
                 found = False
                 if source_id:
                     for item in scenario_outflows:
-                        if item.get("source_id") == source_id:
+                        if _ids_match(item.get("source_id"), source_id):
                             item["date"] = scen_date
                             item["amount_paise"] = amt
                             found = True
