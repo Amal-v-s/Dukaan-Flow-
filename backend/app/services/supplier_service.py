@@ -168,6 +168,15 @@ class SupplierService:
 
         biz = seed_service.get_business()
         biz["opening_cash_paise"] -= req.amount_paise
+        from app.services.audit_service import audit_service
+        audit_service.log_event(
+            business_id="biz_demo_kirana",
+            actor_id="user",
+            action="supplier_payment_recorded",
+            entity_type="supplier_bill",
+            entity_id=bill_id,
+            metadata={"payment_id": payment_id, "amount_paise": req.amount_paise, "payment_date": req.payment_date},
+        )
 
         return SupplierPaymentDTO(
             id=payment["id"],

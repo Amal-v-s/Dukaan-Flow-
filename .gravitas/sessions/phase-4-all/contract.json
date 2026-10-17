@@ -1,0 +1,36 @@
+{
+  "mode": "implement",
+  "objective": "Execute comprehensive Phase 4 production readiness (Phases 4C through 4K): financial audit trail & idempotency, repository persistence layer, deployment Docker/scripts, CI/CD workflows, structured observability, backup/restore, frontend polish & error boundary, legal privacy/terms, and pilot end-to-end smoke verification.",
+  "acceptance_criteria": [
+    "Audit service tracks all financial mutations with actor, entity, action, and request_id",
+    "Ledger entries support idempotency keys and non-destructive reversal adjustments",
+    "Repository abstraction layer supports both Firestore and dev/test storage",
+    "Live dashboard forecast calculation without hardcoded numbers",
+    "Production Dockerfile and requirements.txt for backend",
+    "Deployment and environment configs in infra/ (Cloud Run, Firebase)",
+    "GitHub Actions CI and CD workflows for lint, type check, tests, and build",
+    "Structured JSON logging with request correlation IDs",
+    "Enhanced health endpoints with readiness and dependency status",
+    "Operational runbooks for outages, rollbacks, incidents, and backups",
+    "Backup and restore automation scripts",
+    "Frontend error boundary and legal pages (Privacy & Terms) with disclaimers",
+    "Complete Data Inventory documentation",
+    "All backend tests (existing 93 + new 4C-4K tests) passing",
+    "Frontend build and lint passing with zero errors"
+  ],
+  "non_goals": [
+    "Do not execute live cloud deployment without real GCP credentials",
+    "Do not break backward compatibility with existing tests"
+  ],
+  "risk": "medium",
+  "budget": "deep",
+  "allowed_write_scope": [
+    "backend/",
+    "frontend/",
+    "infra/",
+    "docs/",
+    ".github/",
+    ".gravitas/"
+  ],
+  "verification": "full"
+}

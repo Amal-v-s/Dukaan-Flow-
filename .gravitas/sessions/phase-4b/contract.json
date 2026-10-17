@@ -1,0 +1,43 @@
+{
+  "mode": "implement",
+  "objective": "Add custom JWT authentication, tenant isolation middleware, and frontend auth flow to DukaanFlow",
+  "acceptance_criteria": [
+    "Custom JWT auth with bcrypt password hashing and PyJWT token generation",
+    "Auth middleware verifies Bearer token on all protected routes",
+    "Tenant middleware derives business_id from authenticated user membership",
+    "User registration endpoint (POST /api/v1/auth/register) with email+password",
+    "User login endpoint (POST /api/v1/auth/login) returns JWT access token",
+    "Unauthenticated requests to protected routes return 401",
+    "User A cannot access User B's business records (cross-tenant IDOR protection)",
+    "CORS restricted to explicit origins only (remove wildcard)",
+    "Seed reset guarded behind ENVIRONMENT=development",
+    "Health endpoints remain unauthenticated",
+    "Frontend login page with email/password form",
+    "Frontend auth context with token management and auto-redirect",
+    "Frontend API client wrapper attaches Bearer token to all requests",
+    "Frontend sign-out button in sidebar",
+    "All existing 80 tests continue passing (backward compatible)",
+    "New auth/tenant tests pass"
+  ],
+  "non_goals": [
+    "Do not implement OAuth/social login",
+    "Do not implement email verification or password reset in this phase",
+    "Do not migrate to Firestore (Phase 4D)",
+    "Do not modify existing financial logic or domain layer"
+  ],
+  "risk": "high",
+  "budget": "balanced",
+  "allowed_write_scope": [
+    "backend/app/core/",
+    "backend/app/api/v1/",
+    "backend/app/services/",
+    "backend/app/schemas/",
+    "backend/app/main.py",
+    "backend/tests/",
+    "backend/.env.example",
+    "frontend/src/",
+    "frontend/package.json",
+    ".gravitas/"
+  ],
+  "verification": "targeted"
+}

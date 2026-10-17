@@ -1,4 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { AuthProvider } from './context/AuthContext'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { LoginPage } from './features/auth/LoginPage'
+import { PrivacyPage } from './features/legal/PrivacyPage'
+import { TermsPage } from './features/legal/TermsPage'
 import { AppShell } from './components/layout/AppShell'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { CustomersPage } from './features/customers/CustomersPage'
@@ -12,22 +18,34 @@ import { ImportWizardPage } from './features/imports/ImportWizardPage'
 
 export function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/customers" element={<CustomersPage />} />
-          <Route path="/suppliers" element={<SuppliersPage />} />
-          <Route path="/transactions" element={<TransactionsPage />} />
-          <Route path="/cash-flow" element={<CashFlowPage />} />
-          <Route path="/simulator" element={<SimulatorPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/management" element={<ManagementPage />} />
-          <Route path="/imports" element={<ImportWizardPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            {/* Public Authentication & Legal Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+
+            {/* Protected Merchant Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppShell />}>
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/suppliers" element={<SuppliersPage />} />
+                <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/cash-flow" element={<CashFlowPage />} />
+                <Route path="/simulator" element={<SimulatorPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/management" element={<ManagementPage />} />
+                <Route path="/imports" element={<ImportWizardPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

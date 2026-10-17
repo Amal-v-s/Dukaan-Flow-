@@ -103,3 +103,10 @@ def get_reminders(): return {"items": reminders(), "external_delivery": False}
 @router.patch("/reminders/{reminder_id}")
 def patch_reminder(reminder_id: str, payload: ReminderUpdate): return acknowledge_reminder(reminder_id, payload.status)
 
+@router.get("/audit-events")
+@router.get("/management/audit-events")
+def get_audit_trail(entity_type: Optional[str] = None, limit: int = 50):
+    """Retrieve chronological audit trail of business events."""
+    from app.services.audit_service import audit_service
+    return {"items": audit_service.list_events(business_id="biz_demo_kirana", entity_type=entity_type, limit=limit)}
+

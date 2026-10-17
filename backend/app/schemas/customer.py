@@ -22,6 +22,7 @@ class LedgerEntryCreateRequest(BaseModel):
     due_date: Optional[str] = Field(None, description="YYYY-MM-DD (mandatory for credit_sale)")
     payment_method: Optional[str] = Field("cash", description="cash, upi, bank_transfer")
     notes: Optional[str] = Field("", max_length=500)
+    idempotency_key: Optional[str] = Field(None, max_length=128)
 
 
 class LedgerEntryDTO(BaseModel):
@@ -35,6 +36,12 @@ class LedgerEntryDTO(BaseModel):
     payment_method: Optional[str] = "cash"
     notes: Optional[str] = ""
     created_at: str
+    reversal_of: Optional[str] = None
+
+
+class LedgerEntryReversalRequest(BaseModel):
+    entry_id: str
+    reason: str = Field(..., min_length=3, max_length=500)
 
 
 class CustomerDTO(BaseModel):

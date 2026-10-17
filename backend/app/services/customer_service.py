@@ -145,6 +145,12 @@ class CustomerService:
         return CustomerLedgerResponse(customer=customer_dto, entries=entries_dto)
 
     def add_ledger_entry(self, customer_id: str, req: LedgerEntryCreateRequest) -> LedgerEntryDTO:
+        if getattr(req, "idempotency_key", None):
+            from app.services.audit_service import audit_service
+            cached = audit_service.check_idempotency("biz_demo_kirana", req.idempotency_key)
+            if cached:
+                return LedgerEntryDTO(**cached)
+
         customers = seed_service.get_customers()
         c = next((item for item in customers if item["id"] == customer_id), None)
         if not c:
@@ -202,7 +208,7 @@ class CustomerService:
             biz = seed_service.get_business()
             biz["opening_cash_paise"] += req.amount_paise
 
-        return LedgerEntryDTO(
+        dto = LedgerEntryDTO(
             id=new_entry["id"],
             customer_id=customer_id,
             entry_type=new_entry["entry_type"],
@@ -213,6 +219,105 @@ class CustomerService:
             payment_method=new_entry["payment_method"],
             notes=new_entry["notes"],
             created_at=new_entry["created_at"],
+            reversal_of=new_entry.get("reversal_of"),
+        )
+
+        from app.services.audit_service import audit_service
+        audit_service.log_event(
+            business_id="biz_demo_kirana",
+            actor_id="user",
+            action="ledger_entry_created",
+            entity_type="ledger_entry",
+            entity_id=new_entry["id"],
+            metadata={"customer_id": customer_id, "entry_type": req.entry_type, "amount_paise": req.amount_paise},
+        )
+        if getattr(req, "idempotency_key", None):
+            audit_service.record_idempotency("biz_demo_kirana", req.idempotency_key, dto.model_dump())
+
+        return dto
+
+    def reverse_ledger_entry(
+        self,
+        customer_id: str,
+        entry_id: str,
+        reason: str,
+        business_id: str = "biz_demo_kirana",
+        actor_id: str = "user",
+    ) -> LedgerEntryDTO:
+        """Create a non-destructive compensating reversal entry for an existing ledger entry."""
+        customers = seed_service.get_customers()
+        c = next((item for item in customers if item["id"] == customer_id), None)
+        if not c:
+            raise HTTPException(status_code=404, detail="Customer not found")
+
+        entries = c.get("credit_entries", [])
+        orig_entry = next((e for e in entries if e["id"] == entry_id), None)
+        if not orig_entry:
+            raise HTTPException(status_code=404, detail=f"Ledger entry {entry_id} not found")
+
+        # Check if already reversed
+        if any(e.get("reversal_of") == entry_id for e in entries):
+            raise HTTPException(status_code=400, detail=f"Ledger entry {entry_id} has already been reversed")
+
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        reversal_id = f"rev_{uuid.uuid4().hex[:8]}"
+
+        # Create compensating reversal entry
+        if orig_entry["entry_type"] == "credit_sale":
+            rev_type = "repayment"
+            notes = f"REVERSAL of sale {entry_id}: {reason}"
+        else:
+            rev_type = "credit_sale"
+            notes = f"REVERSAL of repayment {entry_id}: {reason}"
+            # Deduct the reversed repayment amount from cash book
+            biz = seed_service.get_business()
+            biz["opening_cash_paise"] = max(0, biz.get("opening_cash_paise", 0) - orig_entry["amount_paise"])
+
+        reversal_entry = {
+            "id": reversal_id,
+            "customer_id": customer_id,
+            "entry_type": rev_type,
+            "amount_paise": orig_entry["amount_paise"],
+            "effective_date": today_str,
+            "due_date": None,
+            "status": "posted",
+            "payment_method": orig_entry.get("payment_method", "cash"),
+            "notes": notes,
+            "created_at": datetime.now().isoformat(),
+            "reversal_of": entry_id,
+        }
+
+        entries.append(reversal_entry)
+        c["last_activity_date"] = today_str
+
+        # Recalculate canonical balances
+        outstanding, total_credit, total_repaid = calculate_customer_balance(entries)
+        c["outstanding_balance_paise"] = outstanding
+        c["total_credit_paise"] = total_credit
+        c["total_repaid_paise"] = total_repaid
+
+        from app.services.audit_service import audit_service
+        audit_service.log_event(
+            business_id=business_id,
+            actor_id=actor_id,
+            action="ledger_entry_reversed",
+            entity_type="ledger_entry",
+            entity_id=reversal_id,
+            metadata={"reversal_of": entry_id, "customer_id": customer_id, "reason": reason},
+        )
+
+        return LedgerEntryDTO(
+            id=reversal_entry["id"],
+            customer_id=customer_id,
+            entry_type=reversal_entry["entry_type"],
+            amount_paise=reversal_entry["amount_paise"],
+            effective_date=reversal_entry["effective_date"],
+            due_date=None,
+            status="posted",
+            payment_method=reversal_entry["payment_method"],
+            notes=reversal_entry["notes"],
+            created_at=reversal_entry["created_at"],
+            reversal_of=entry_id,
         )
 
 
