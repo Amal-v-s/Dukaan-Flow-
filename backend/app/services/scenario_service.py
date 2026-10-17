@@ -9,8 +9,9 @@ RULES (from docs/01_PRD.md & docs/06_ENGINEERING_RULES.md):
 import copy
 import re
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional
+from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from app.domain.forecast import generate_forecast
 from app.services.forecast_movements import gather_forecast_movements
@@ -21,9 +22,11 @@ from app.schemas.scenario import (
     ScenarioEventDTO,
     ScenarioForecastDayDTO,
     ScenarioForecastResponse,
+    ScenarioPreviewRequest,
 )
 from app.services.seed_data import seed_service
 from app.core.tenant_context import get_business_id
+from app.core.config import settings
 
 
 def _ids_match(id1: Optional[str], id2: Optional[str]) -> bool:
@@ -101,6 +104,78 @@ class ScenarioService:
         self._scenarios[scen_id] = item
         return self._to_dto(item)
 
+    @staticmethod
+    def _today() -> date:
+        business_timezone = seed_service.get_business().get("timezone") or settings.DEFAULT_TIMEZONE
+        return datetime.now(ZoneInfo(business_timezone)).date()
+
+    def event_options(self, horizon_days: int = 14) -> dict:
+        """Return eligible real cash movements inside the current forecast window."""
+        today = self._today()
+        end_date = today + timedelta(days=horizon_days)
+        items = []
+        for customer in seed_service.get_customers():
+            for entry in customer.get("credit_entries", []):
+                due_date = entry.get("due_date")
+                if (
+                    entry.get("status", "posted") == "posted"
+                    and entry.get("entry_type") == "credit_sale"
+                    and due_date
+                    and today <= date.fromisoformat(due_date) < end_date
+                ):
+                    items.append({
+                        "source_id": entry["id"],
+                        "event_type": "customer_collection",
+                        "title": f"{customer['name']} collection",
+                        "amount_paise": entry["amount_paise"],
+                        "scheduled_date": due_date,
+                    })
+        for bill in seed_service.get_supplier_bills():
+            due_date = bill.get("due_date")
+            if (
+                bill.get("remaining_amount_paise", 0) > 0
+                and bill.get("status") != "paid"
+                and due_date
+                and today <= date.fromisoformat(due_date) < end_date
+            ):
+                items.append({
+                    "source_id": bill["id"],
+                    "event_type": "supplier_bill",
+                    "title": f"{bill['supplier_name']} bill",
+                    "amount_paise": bill["remaining_amount_paise"],
+                    "scheduled_date": due_date,
+                })
+        items.sort(key=lambda item: (item["scheduled_date"], item["event_type"], item["title"]))
+        return {"today": today.isoformat(), "horizon_days": horizon_days, "items": items}
+
+    def preview_event(self, event: ScenarioPreviewRequest, horizon_days: int = 14) -> ScenarioForecastResponse:
+        today = self._today()
+        scenario_date = date.fromisoformat(event.scenario_date)
+        if scenario_date < today or scenario_date >= today + timedelta(days=horizon_days):
+            raise HTTPException(status_code=422, detail=f"Choose a date inside the next {horizon_days} days.")
+        if event.event_type == "extra_expense":
+            if event.source_id:
+                raise HTTPException(status_code=422, detail="An unexpected expense cannot reference a real event.")
+            if event.amount_paise <= 0:
+                raise HTTPException(status_code=422, detail="Enter an expense amount greater than zero.")
+        else:
+            options = self.event_options(horizon_days)["items"]
+            selected = next((item for item in options if item["source_id"] == event.source_id and item["event_type"] == event.event_type), None)
+            if not selected:
+                raise HTTPException(status_code=422, detail="That event is no longer eligible for simulation. Refresh and choose another.")
+            if event.original_date and event.original_date != selected["scheduled_date"]:
+                raise HTTPException(status_code=422, detail="The event changed since you opened the simulator. Refresh and try again.")
+
+        event_data = {
+            "event_type": event.event_type,
+            "source_id": event.source_id,
+            "amount_paise": event.amount_paise,
+            "original_date": event.original_date,
+            "scenario_date": event.scenario_date,
+            "description": event.description or "",
+        }
+        return self._forecast_events(f"preview_{uuid.uuid4().hex[:10]}", "Your scenario", [event_data], horizon_days)
+
     def list_scenarios(self) -> List[ScenarioDTO]:
         return [self._to_dto(s) for s in self._scenarios.values()]
 
@@ -140,13 +215,18 @@ class ScenarioService:
         scen = self._scenarios.get(scenario_id)
         if not scen:
             raise HTTPException(status_code=404, detail="Scenario not found")
+        return self._forecast_events(scen["id"], scen["name"], scen["events"], horizon_days)
+
+    def _forecast_events(
+        self, scenario_id: str, scenario_name: str, events: list[dict], horizon_days: int
+    ) -> ScenarioForecastResponse:
 
         # Snapshot seed state to verify isolation invariant
         biz_before = copy.deepcopy(seed_service.get_business())
         customers_before = copy.deepcopy(seed_service.get_customers())
         bills_before = copy.deepcopy(seed_service.get_supplier_bills())
 
-        start_date = date.fromisoformat("2026-10-17")
+        start_date = self._today()
         safety_buffer = biz_before.get("cash_safety_buffer_paise", 1500000)
 
         # Build baseline movements deterministically
@@ -166,7 +246,7 @@ class ScenarioService:
         scenario_inflows = copy.deepcopy(baseline_inflows)
         scenario_outflows = copy.deepcopy(baseline_outflows)
 
-        for evt in scen["events"]:
+        for evt in events:
             evt_type = evt["event_type"]
             source_id = evt.get("source_id")
             amt = evt["amount_paise"]
@@ -270,8 +350,8 @@ class ScenarioService:
         shortage_resolved = baseline_res.shortage_detected and not scenario_res.shortage_detected
 
         return ScenarioForecastResponse(
-            scenario_id=scen["id"],
-            scenario_name=scen["name"],
+            scenario_id=scenario_id,
+            scenario_name=scenario_name,
             currency="INR",
             horizon_days=horizon_days,
             safety_buffer_paise=safety_buffer,

@@ -1,5 +1,5 @@
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Literal, Optional
+from pydantic import BaseModel, Field, field_validator
 
 
 class ScenarioEventCreate(BaseModel):
@@ -19,6 +19,27 @@ class ScenarioCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     description: Optional[str] = Field(default="")
     events: List[ScenarioEventCreate] = Field(default_factory=list)
+
+
+class ScenarioPreviewRequest(BaseModel):
+    event_type: Literal["customer_collection", "supplier_bill", "extra_expense"]
+    source_id: Optional[str] = None
+    amount_paise: int = Field(..., ge=0, le=100_000_000_000)
+    original_date: Optional[str] = None
+    scenario_date: str
+    description: Optional[str] = ""
+
+    @field_validator("scenario_date", "original_date")
+    @classmethod
+    def validate_iso_date(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        from datetime import date
+        try:
+            date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("Dates must use YYYY-MM-DD format") from exc
+        return value
 
 
 class ScenarioDTO(BaseModel):

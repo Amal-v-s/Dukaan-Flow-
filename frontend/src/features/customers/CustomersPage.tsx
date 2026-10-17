@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Plus, Search, Phone, X, History, CheckCircle2, AlertOctagon } from 'lucide-react'
+import { Plus, Search, Phone, X, History, CheckCircle2, AlertOctagon, MessageCircle } from 'lucide-react'
 import { formatPaiseToINR, formatDate, parseINRToPaise } from '../../lib/formatters'
 
 interface Customer {
@@ -54,6 +54,18 @@ export const CustomersPage: React.FC = () => {
   const [entryNotes, setEntryNotes] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [shopName, setShopName] = useState('our shop')
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/v1/settings')
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (active && data?.business_name) setShopName(data.business_name)
+      })
+      .catch((err) => console.error('Could not load shop name:', err))
+    return () => { active = false }
+  }, [])
 
   const fetchCustomers = async () => {
     try {
@@ -82,6 +94,28 @@ export const CustomersPage: React.FC = () => {
     } finally {
       setLoadingLedger(false)
     }
+  }
+
+  const getWhatsAppReminderUrl = (customer: Customer) => {
+    if (!customer.phone || customer.outstanding_balance_paise <= 0) return undefined
+    let phone = customer.phone.replace(/\D/g, '')
+    if (phone.length === 10) phone = `91${phone}`
+    else if (phone.length === 11 && phone.startsWith('0')) phone = `91${phone.slice(1)}`
+    const outstandingCredits = customer.id === activeCustomer?.id
+      ? customerLedger.filter((entry) => entry.entry_type === 'credit_sale' && entry.status === 'posted' && entry.due_date)
+      : []
+    const dueDate = outstandingCredits
+      .map((entry) => entry.due_date as string)
+      .sort()[0]
+    if (!dueDate) return undefined
+
+    const message = `Hi ${customer.name}! 👋\n\nThis is a friendly reminder from ${shopName} that your outstanding balance is ₹${formatPaiseToINR(customer.outstanding_balance_paise, false)}.\n\n📅 Due date: ${formatDate(dueDate)}\n\nKindly clear the pending amount at your convenience. If you’ve already made the payment, please ignore this message.\n\nThank you for shopping with us! 🙏\n— ${shopName}`
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
+  }
+
+  const openWhatsAppReminder = (customer: Customer) => {
+    const url = getWhatsAppReminderUrl(customer)
+    if (url) window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   useEffect(() => {
@@ -449,7 +483,7 @@ export const CustomersPage: React.FC = () => {
             </div>
 
             {/* Quick action buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => handleOpenCredit(activeCustomer)}
                 className="py-1.5 px-3 bg-[#16A36A] hover:bg-[#0D6843] text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1"
@@ -463,6 +497,15 @@ export const CustomersPage: React.FC = () => {
                 className="py-1.5 px-3 bg-[#17191C] hover:bg-black text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1 disabled:opacity-40"
               >
                 <span>Repay</span>
+              </button>
+              <button
+                onClick={() => openWhatsAppReminder(activeCustomer)}
+                disabled={loadingLedger || !getWhatsAppReminderUrl(activeCustomer)}
+                title={!activeCustomer.phone ? 'Add a phone number to this customer first' : 'Requires a recorded due date and outstanding balance'}
+                className="py-1.5 px-2 bg-[#25D366] hover:bg-[#1DA851] text-white text-[11px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
               </button>
             </div>
 

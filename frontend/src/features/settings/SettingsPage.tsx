@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Shield, Store, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { formatPaiseToINR } from '../../lib/formatters'
+import { apiFetch } from '../../lib/api'
 
 interface SettingsData {
   store_name: string
@@ -22,7 +23,7 @@ export const SettingsPage: React.FC = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/settings')
+      const res = await apiFetch('/api/v1/settings')
       if (res.ok) {
         const data: SettingsData = await res.json()
         setStoreName(data.store_name)
@@ -55,9 +56,8 @@ export const SettingsPage: React.FC = () => {
     }
 
     try {
-      const res = await fetch('/api/v1/settings', {
+      const res = await apiFetch('/api/v1/settings', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           store_name: storeName.trim() || 'Demo Kirana Store',
           cash_safety_buffer_paise: bufferNum * 100,
@@ -73,6 +73,7 @@ export const SettingsPage: React.FC = () => {
       setStoreName(updated.store_name)
       setBufferInr((updated.cash_safety_buffer_paise / 100).toString())
       setSaved(true)
+      window.dispatchEvent(new CustomEvent('dukaanflow:safety-buffer-updated', { detail: updated.cash_safety_buffer_paise }))
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error saving settings.')
@@ -130,8 +131,11 @@ export const SettingsPage: React.FC = () => {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#737780]">₹</span>
               <input
                 type="number"
+                min="0"
+                step="1"
                 value={bufferInr}
                 onChange={(e) => setBufferInr(e.target.value)}
+                disabled={loading || saving}
                 className="w-full pl-8 pr-3 py-2 bg-white border border-[#E8EAED] rounded-lg text-xs font-bold tabular-nums text-[#17191C] focus:outline-none focus:border-[#16A36A]"
               />
             </div>
@@ -155,6 +159,7 @@ export const SettingsPage: React.FC = () => {
                 Settings saved!
               </span>
             )}
+            {error && <span role="alert" className="text-xs font-semibold text-[#DC5555]">{error}</span>}
           </div>
         </form>
       </div>
