@@ -8,6 +8,7 @@ from app.schemas.customer import (
     CustomerUpdateRequest,
     LedgerEntryCreateRequest,
     LedgerEntryDTO,
+    LedgerEntryReversalRequest,
 )
 from app.services.customer_service import customer_service
 
@@ -54,3 +55,13 @@ def add_ledger_entry(customer_id: str, req: LedgerEntryCreateRequest):
     - Synchronizes the received funds into the shop cash book and increases available cash.
     """
     return customer_service.add_ledger_entry(customer_id, req)
+
+
+@router.post("/customers/{customer_id}/ledger-entries/reversals", response_model=LedgerEntryDTO, status_code=201)
+def reverse_ledger_entry(customer_id: str, req: LedgerEntryReversalRequest):
+    """Create a non-destructive audit-backed reversal adjustment for an existing ledger entry."""
+    return customer_service.reverse_ledger_entry(
+        customer_id=customer_id,
+        entry_id=req.entry_id,
+        reason=req.reason,
+    )

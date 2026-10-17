@@ -27,6 +27,9 @@ class Settings(BaseModel):
         "http://127.0.0.1:5173",
         "http://localhost:3000",
     ]
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "dukaanflow-insecure-dev-secret-key-change-in-production")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_SECONDS: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_SECONDS", str(3600 * 8)))  # 8 hours
 
 
 settings = Settings()

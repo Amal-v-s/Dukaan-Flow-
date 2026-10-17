@@ -1,12 +1,14 @@
 import time
 import uuid
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.config import settings
+from app.core.auth import get_current_user
+from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.customers import router as customers_router
@@ -27,10 +29,10 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS configuration per 04_AUTH_SECURITY.md
+# CORS configuration per 04_AUTH_SECURITY.md (strictly explicit origins)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS + ["*"],  # Open in development
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -108,15 +110,19 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 
 # Register API routers
+# Public endpoints
 app.include_router(health_router)
-app.include_router(dashboard_router)
-app.include_router(customers_router)
-app.include_router(suppliers_router)
-app.include_router(transactions_router)
-app.include_router(cashflow_router)
-app.include_router(seed_router)
-app.include_router(expenses_router)
-app.include_router(alerts_router)
-app.include_router(scenarios_router)
-app.include_router(management_router)
-app.include_router(phase3_router)
+app.include_router(auth_router)
+
+# Protected domain endpoints (require valid Bearer JWT)
+app.include_router(dashboard_router, dependencies=[Depends(get_current_user)])
+app.include_router(customers_router, dependencies=[Depends(get_current_user)])
+app.include_router(suppliers_router, dependencies=[Depends(get_current_user)])
+app.include_router(transactions_router, dependencies=[Depends(get_current_user)])
+app.include_router(cashflow_router, dependencies=[Depends(get_current_user)])
+app.include_router(seed_router, dependencies=[Depends(get_current_user)])
+app.include_router(expenses_router, dependencies=[Depends(get_current_user)])
+app.include_router(alerts_router, dependencies=[Depends(get_current_user)])
+app.include_router(scenarios_router, dependencies=[Depends(get_current_user)])
+app.include_router(management_router, dependencies=[Depends(get_current_user)])
+app.include_router(phase3_router, dependencies=[Depends(get_current_user)])

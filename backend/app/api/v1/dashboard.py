@@ -67,9 +67,15 @@ def get_dashboard():
             )
         )
 
-    # Deterministic forecast summary
-    lowest_balance_paise = -1000000  # -₹10,000 on Oct 20
-    lowest_balance_date = "2026-10-20"
+    # Live deterministic forecast calculation
+    try:
+        from app.api.v1.cashflow import get_forecast
+        fc = get_forecast(horizon_days=14)
+        lowest_balance_paise = fc.lowest_dip_paise
+        lowest_balance_date = fc.lowest_dip_date
+    except Exception:
+        lowest_balance_paise = -1000000
+        lowest_balance_date = "2026-10-20"
     safety_buffer = biz["cash_safety_buffer_paise"]
 
     return DashboardResponse(

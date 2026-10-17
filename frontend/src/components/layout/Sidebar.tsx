@@ -9,9 +9,11 @@ import {
   SlidersHorizontal,
   Settings,
   Store,
-  ShieldCheck
-  , ClipboardList
+  ShieldCheck,
+  ClipboardList,
+  LogOut,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 interface NavItem {
   name: string
@@ -32,6 +34,16 @@ const navItems: NavItem[] = [
 ]
 
 export const Sidebar: React.FC = () => {
+  const { user, logout } = useAuth()
+
+  const displayName = user?.business_name || 'Demo Kirana Store'
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('') || 'DF'
+
   return (
     <aside className="hidden md:flex flex-col w-[240px] shrink-0 bg-white border-r border-[#E8EAED] min-h-screen z-20">
       {/* Brand Header */}
@@ -73,20 +85,25 @@ export const Sidebar: React.FC = () => {
       <div className="p-4 border-t border-[#E8EAED] bg-[#F7F8FA]">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-[#16A36A] text-white flex items-center justify-center text-xs font-bold shrink-0">
-            DK
+            {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-[#17191C] truncate">Demo Kirana Store</p>
+            <p className="text-xs font-semibold text-[#17191C] truncate">{displayName}</p>
             <div className="flex items-center gap-1 text-[10px] text-[#16A36A] font-medium mt-0.5">
               <ShieldCheck className="w-3 h-3" />
-              <span>Verified Store (INR)</span>
+              <span className="truncate">{user?.full_name || 'Verified Store (INR)'}</span>
             </div>
           </div>
         </div>
-        <div className="mt-2 text-[10px] text-[#737780] flex items-center justify-between">
-          <span>Mode: Demo Seed</span>
-          <span className="bg-[#E8F7EF] text-[#16A36A] px-1.5 py-0.5 rounded font-semibold">Active</span>
-        </div>
+
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full mt-3 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold text-[#D9383A] bg-white border border-[#F2C0C1] hover:bg-red-50 transition-colors shadow-2xs cursor-pointer"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Sign Out</span>
+        </button>
       </div>
     </aside>
   )
