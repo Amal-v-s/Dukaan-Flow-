@@ -1,0 +1,30 @@
+{
+  "mode": "verify",
+  "objective": "Phase 2H: Comprehensive Automated Testing & Verification of Phase 2 Business Management (Repayment Plans, Instalments, Budgets, Reports, In-App Reminders, Forecast/Dashboard Integration, and Zero Regression on Phase 1)",
+  "acceptance_criteria": [
+    "Repayment Plans: Creation of full_payment and instalment schedules, validation of planned amount against unallocated customer credit balance, date ordering",
+    "Instalment Tracking & Payments: Recording partial and full payments against instalments, idempotent duplicate payment prevention, updating plan status, customer ledger, and cashbook exactly once",
+    "Overdue & Status Derivation: Overdue status derived on read from due date and remaining amount; cancelled plans require reason and record audit event; cancelled/completed plans reject new payments",
+    "Budget Management: Category budgets, 75%, 90%, 100% threshold triggers, spent/remaining calculations, excluding supplier bills from expenses",
+    "Summary Reports: Server-side calculation of cash inflows, outflows, categorized expenses, customer receivables, supplier payables, and budget utilization",
+    "In-App Reminders: Generating reminders for due instalments and bills, deduplication by type/source/date, acknowledgement lifecycle",
+    "Dashboard & Forecast Integration: Exposing next instalments due, overdue plan counts, budget alerts, and forecast scheduling without double-counting",
+    "Full End-to-End Walkthrough of Phase 2 verifying complete Definition of Done",
+    "Zero regression on Phase 1 (all 32 Phase 1 tests pass)",
+    "Frontend production build compiles cleanly with zero TypeScript errors"
+  ],
+  "non_goals": [
+    "No real lending, loan origination, or interest charging",
+    "No automatic UPI/card execution",
+    "No external WhatsApp/SMS delivery (in-app only)"
+  ],
+  "risk": "medium",
+  "budget": "thorough",
+  "allowed_write_scope": [
+    "backend/",
+    "frontend/",
+    "memory.md",
+    ".gravitas/"
+  ],
+  "verification": "impact"
+}
