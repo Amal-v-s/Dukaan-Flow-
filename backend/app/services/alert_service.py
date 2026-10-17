@@ -13,6 +13,7 @@ from app.domain.forecast import generate_forecast
 from app.domain.money import format_paise_to_inr
 from app.schemas.alert import AlertContributorDTO, CashAlertDTO, AlertsListResponse
 from app.services.seed_data import seed_service
+from app.services.forecast_movements import gather_forecast_movements
 
 
 class AlertService:
@@ -37,35 +38,8 @@ class AlertService:
         start_date = date.fromisoformat("2026-10-17")
         safety_buffer = biz.get("cash_safety_buffer_paise", 1500000)
 
-        # Inflows
-        inflows = []
-        for c in customers:
-            for entry in c.get("credit_entries", []):
-                if entry.get("status", "posted") == "posted" and entry.get("entry_type") == "credit_sale":
-                    d = entry.get("due_date")
-                    if d:
-                        inflows.append({
-                            "date": d,
-                            "amount_paise": entry["amount_paise"],
-                            "source_type": "customer_collection",
-                            "source_id": entry["id"],
-                            "description": f"{c['name']} (Repayment due)",
-                        })
-
-        # Outflows
-        outflows = []
-        for b in bills:
-            remaining = b.get("remaining_amount_paise", 0)
-            if remaining > 0 and b.get("status") != "paid":
-                d = b.get("due_date")
-                if d:
-                    outflows.append({
-                        "date": d,
-                        "amount_paise": remaining,
-                        "source_type": "supplier_bill",
-                        "source_id": b["id"],
-                        "description": f"{b['supplier_name']} - {b['description']}",
-                    })
+        # Gather deterministic forecast movements
+        inflows, outflows = gather_forecast_movements(customers, bills)
 
         forecast = generate_forecast(
             start_date=start_date,

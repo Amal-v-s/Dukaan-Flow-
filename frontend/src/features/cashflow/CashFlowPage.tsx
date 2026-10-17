@@ -165,7 +165,7 @@ export const CashFlowPage: React.FC = () => {
                           {evt.description}
                         </Link>
                       ) : (
-                        <Link to="/khata" className="text-[#6D8FE8] hover:underline font-medium">
+                        <Link to="/customers" className="text-[#6D8FE8] hover:underline font-medium">
                           {evt.description}
                         </Link>
                       )}

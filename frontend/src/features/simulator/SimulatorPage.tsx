@@ -57,7 +57,7 @@ export const SimulatorPage: React.FC = () => {
       if (adv) {
         events.push({
           event_type: 'customer_collection',
-          source_id: 'entry_ravi_01',
+          source_id: 'entry_ravi_1',
           amount_paise: 5000000,
           original_date: '2026-10-22',
           scenario_date: '2026-10-19',
