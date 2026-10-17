@@ -5,11 +5,14 @@ Provides:
 - get_current_business_id: extracts business_id from authenticated user.
 - require_business_access: validates that a requested business matches the user's business.
 """
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.services.auth_service import decode_access_token, get_user_by_id
+from app.core.database import get_db
+from app.core.database import RequestWriteBatch, RequestWriteLimitExceeded
+from app.core.tenant_context import set_business_id, set_user_id, set_write_batch
 
 # Use HTTPBearer with auto_error=False for cleaner error handling
 security_bearer = HTTPBearer(auto_error=False)
@@ -17,7 +20,7 @@ security_bearer = HTTPBearer(auto_error=False)
 
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security_bearer),
-) -> dict:
+) -> AsyncGenerator[dict, None]:
     """Validate Bearer JWT token and return authenticated user object.
 
     Raises:
@@ -49,7 +52,34 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return user
+    business_id = user.get("business_id")
+    if not business_id:
+        raise HTTPException(status_code=403, detail="User is not associated with an active business.")
+    db = get_db()
+    if db.mode in ("firestore", "emulator"):
+        member = db.business_collection(business_id, "members").document(user_id).get()
+        if not member.exists or (member.to_dict() or {}).get("status") != "active":
+            raise HTTPException(status_code=403, detail="Business membership is inactive.")
+    context_token = set_business_id(business_id)
+    user_token = set_user_id(user_id)
+    db = get_db()
+    batch = RequestWriteBatch(db.firestore_client) if db.firestore_client else None
+    batch_token = set_write_batch(batch)
+    try:
+        yield user
+    except BaseException:
+        raise
+    else:
+        if batch is not None:
+            try:
+                batch.commit()
+            except RequestWriteLimitExceeded as exc:
+                raise HTTPException(status_code=413, detail=str(exc)) from exc
+    finally:
+        from app.core.tenant_context import reset_business_id, reset_user_id, reset_write_batch
+        reset_business_id(context_token)
+        reset_user_id(user_token)
+        reset_write_batch(batch_token)
 
 
 async def get_current_business_id(

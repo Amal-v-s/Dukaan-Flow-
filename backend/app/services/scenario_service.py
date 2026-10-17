@@ -21,17 +21,24 @@ from app.schemas.scenario import (
     ScenarioForecastResponse,
 )
 from app.services.seed_data import seed_service
+from app.core.tenant_context import get_business_id
 
 
 class ScenarioService:
     def __init__(self):
-        self._scenarios: Dict[str, Dict] = {}
-        self._initialize_default_scenarios()
+        pass
 
-    def _initialize_default_scenarios(self):
+    @property
+    def _scenarios(self):
+        scenarios = seed_service._data.setdefault("scenarios", {})
+        if get_business_id() == "biz_demo_kirana" and not scenarios:
+            self._initialize_default_scenarios(scenarios)
+        return scenarios
+
+    def _initialize_default_scenarios(self, scenarios):
         """Seed a standard recommended scenario for instant merchant demo."""
         default_id = "scen_demo_mitigation"
-        self._scenarios[default_id] = {
+        scenarios[default_id] = {
             "id": default_id,
             "name": "Advance Ravi Collection + Delay Coastal Bill",
             "description": "Shift Ravi Stores payment earlier by 3 days and request a 5-day extension from Coastal Wholesale.",

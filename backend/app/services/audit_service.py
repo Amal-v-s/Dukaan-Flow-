@@ -5,11 +5,15 @@ duplicate submissions via idempotency keys.
 """
 import time
 import uuid
+import hashlib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
 
 from app.services.seed_data import seed_service
+from app.core.database import get_db
+from app.core.database import persist_set
+from app.core.tenant_context import get_business_id, get_user_id
 
 # Idempotency cache: (business_id, key) -> (expiry_time, cached_response)
 _IDEMPOTENCY_CACHE: Dict[str, tuple[float, Any]] = {}
@@ -31,10 +35,11 @@ class AuditService:
         event_id = f"audit_{uuid.uuid4().hex[:12]}"
         timestamp = datetime.now(timezone.utc).isoformat()
 
+        business_id = get_business_id()
         event = {
             "id": event_id,
             "business_id": business_id,
-            "actor_id": actor_id,
+            "actor_id": get_user_id(),
             "action": action,
             "entity_type": entity_type,
             "entity_id": entity_id,
@@ -43,14 +48,8 @@ class AuditService:
             "created_at": timestamp,
         }
 
-        # Store in seed_service._data for local/dev, or tenant-scoped store
         events = seed_service._data.setdefault("audit_events", [])
         events.append(event)
-
-        # Also store under business_data if tenant exists
-        if business_id and business_id != "biz_demo_kirana":
-            b_data = seed_service._data.setdefault("business_data", {}).setdefault(business_id, {})
-            b_data.setdefault("audit_events", []).append(event)
 
         return event
 
@@ -61,11 +60,8 @@ class AuditService:
         limit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Retrieve chronological audit trail for a business."""
-        if business_id and business_id != "biz_demo_kirana":
-            b_data = seed_service._data.setdefault("business_data", {}).setdefault(business_id, {})
-            events = b_data.get("audit_events", [])
-        else:
-            events = seed_service._data.get("audit_events", [])
+        business_id = get_business_id()
+        events = seed_service._data.get("audit_events", [])
 
         filtered = [
             e for e in events
@@ -78,7 +74,19 @@ class AuditService:
         if not idempotency_key:
             return None
 
-        cache_key = f"{business_id}:{idempotency_key}"
+        db = get_db()
+        if db.mode in ("firestore", "emulator"):
+            doc_id = hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()
+            ref = db.business_collection(get_business_id(), "idempotency").document(doc_id)
+            snap = ref.get()
+            if not snap.exists:
+                return None
+            cached = snap.to_dict() or {}
+            if cached.get("expires_at", 0) > time.time():
+                return cached.get("response")
+            ref.delete()
+            return None
+        cache_key = f"{get_business_id()}:{idempotency_key}"
         cached = _IDEMPOTENCY_CACHE.get(cache_key)
         if cached:
             expires_at, response = cached
@@ -93,7 +101,14 @@ class AuditService:
         if not idempotency_key:
             return
 
-        cache_key = f"{business_id}:{idempotency_key}"
+        db = get_db()
+        if db.mode in ("firestore", "emulator"):
+            doc_id = hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()
+            persist_set(db.business_collection(get_business_id(), "idempotency").document(doc_id), {
+                "id": idempotency_key, "response": response_data, "expires_at": time.time() + IDEMPOTENCY_TTL_SECONDS,
+            })
+            return
+        cache_key = f"{get_business_id()}:{idempotency_key}"
         _IDEMPOTENCY_CACHE[cache_key] = (time.time() + IDEMPOTENCY_TTL_SECONDS, response_data)
 
 

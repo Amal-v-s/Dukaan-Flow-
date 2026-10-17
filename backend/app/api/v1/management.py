@@ -2,6 +2,7 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from app.services.phase2_service import (list_plans, get_plan, create_plan, update_plan, record_installment_payment, cancel_plan, budget_views, create_budget, update_budget, reminders, acknowledge_reminder, report_summary, today)
+from app.core.tenant_context import get_business_id
 
 router = APIRouter(prefix="/api/v1", tags=["Business Management"])
 
@@ -108,5 +109,5 @@ def patch_reminder(reminder_id: str, payload: ReminderUpdate): return acknowledg
 def get_audit_trail(entity_type: Optional[str] = None, limit: int = 50):
     """Retrieve chronological audit trail of business events."""
     from app.services.audit_service import audit_service
-    return {"items": audit_service.list_events(business_id="biz_demo_kirana", entity_type=entity_type, limit=limit)}
+    return {"items": audit_service.list_events(business_id=get_business_id(), entity_type=entity_type, limit=limit)}
 

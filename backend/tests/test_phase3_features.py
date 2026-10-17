@@ -196,6 +196,10 @@ def test_import_size_limit_and_template():
     with pytest.raises(HTTPException) as exc:
         phase3_service.preview_expense_import("large.csv", "x" * 1_000_001)
     assert exc.value.status_code == 413
+    csv_rows = "title,category,amount_inr,expense_date\n" + "Tea,utilities,1,2026-10-17\n" * 401
+    with pytest.raises(HTTPException) as row_limit:
+        phase3_service.preview_expense_import("too-many.csv", csv_rows)
+    assert row_limit.value.status_code == 413
     assert b"amount_inr" in phase3_service.expense_import_template()
 
 

@@ -167,7 +167,9 @@ def preview_expense_import(file_name: str, csv_text: str) -> dict:
     seen=set(); existing={(t.get("description"),t.get("category"),t.get("amount_paise"),t.get("date")) for t in seed_service.get_transactions() if t.get("type")=="expense"}
     rows=[]
     for row_num,row in enumerate(reader,start=2):
-        if row_num>1001: raise HTTPException(413,"Import is limited to 1,000 rows")
+        # Leave headroom under Firestore's 500-write batch cap for the batch,
+        # audit event, and business cash balance update.
+        if row_num>401: raise HTTPException(413,"Import is limited to 400 rows")
         errors=[]
         if None in row: errors.append("row has more values than the header")
         title=(row.get("title") or "").strip(); category=(row.get("category") or "").strip().lower(); amount_text=(row.get("amount_inr") or "").strip(); expense_date=(row.get("expense_date") or "").strip(); method=(row.get("payment_method") or "cash").strip().lower(); notes=(row.get("notes") or "").strip()

@@ -241,6 +241,14 @@ configuration to source control.
 -   Ensure a payment cannot exceed the outstanding bill or customer
     balance unless an explicit credit policy is defined.
 
-## 6. Phase 3 Demo-Only Operational Records
+## 6. Firestore Runtime Collections
 
-The current in-memory demo adds metadata-only `ai_interaction_logs`, staged `import_batches`, and `notification_preferences` under `SeedService` state. AI logs contain request ID, use case, result status, provider, and latency only. They do not retain prompts or model responses. Import batches retain normalized rows only until completion/cancellation; the raw CSV file is never stored. Confirmed expense rows carry `import_batch_id` and `import_row_number` provenance. Preferences include reminder lead time and enabled categories. These records are process-local and are cleared by demo reset; they are not a Firestore schema implementation.
+The backend uses the Admin/server Firestore SDK with Application Default Credentials. All business records are stored beneath `businesses/{businessId}`; request scope is derived from the verified JWT user record. The compatibility service layer currently maps customers, suppliers, supplier bills, repayment plans, budgets, scenarios, reminders, audit events, AI metadata, and import batches to tenant subcollections. Cashbook transactions use the `cash_events` subcollection. Notification preferences use `businesses/{businessId}/settings/notification_preferences`.
+
+User credentials are stored only on the server in `users/{userId}` with a bcrypt password hash. `user_email_index/{sha256(normalizedEmail)}` provides unique email lookup, and `businesses/{businessId}/members/{userId}` records active membership. The browser Firebase web configuration is not used for privileged database access.
+
+AI logs contain request ID, use case, result status, provider, and latency only. They do not retain prompts or model responses. Import batches retain normalized rows only until completion/cancellation; the raw CSV is never stored. Confirmed expense rows retain import batch/row provenance. Configured authenticated requests stage Firestore changes in a batched write and commit them before completing the request. Account/business/member registration uses a Firestore transaction.
+
+When `GOOGLE_CLOUD_PROJECT` and Firestore credentials are configured, failure to load or initialize the Firestore SDK is fatal rather than silently switching to volatile memory. Without a project configured, isolated local tests use the in-memory adapter. The Firestore emulator can be selected with `FIRESTORE_EMULATOR_HOST`.
+
+**Current compatibility model:** Existing service APIs still consume customer records containing `credit_entries`, supplier bills containing their `payments`, and repayment plans containing their installments. Those child records are currently embedded in their parent documents to preserve current service behavior; `transactions` are stored in `cash_events`. The normalized `customer_ledger_entries` and `supplier_payments` collections above remain the target for a later data-model normalization pass. Keep these arrays below Firestore's document size limit.

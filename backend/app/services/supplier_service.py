@@ -14,6 +14,7 @@ from app.schemas.supplier import (
     SupplierPaymentDTO,
 )
 from app.services.seed_data import seed_service
+from app.core.tenant_context import get_business_id, get_user_id
 
 
 class SupplierService:
@@ -170,8 +171,8 @@ class SupplierService:
         biz["opening_cash_paise"] -= req.amount_paise
         from app.services.audit_service import audit_service
         audit_service.log_event(
-            business_id="biz_demo_kirana",
-            actor_id="user",
+            business_id=get_business_id(),
+            actor_id=get_user_id(),
             action="supplier_payment_recorded",
             entity_type="supplier_bill",
             entity_id=bill_id,

@@ -1,5 +1,8 @@
 import copy
 from typing import Any, Dict, List
+from app.core.database import get_db
+from app.core.tenant_context import get_business_id
+from app.core.tenant_data import FirestoreTenantData
 
 DEFAULT_SEED_DATA: Dict[str, Any] = {
     "business": {
@@ -155,15 +158,71 @@ DEFAULT_SEED_DATA: Dict[str, Any] = {
 
 class SeedService:
     def __init__(self):
-        self._data = copy.deepcopy(DEFAULT_SEED_DATA)
+        self._memory_data = copy.deepcopy(DEFAULT_SEED_DATA)
+        self._tenant_memory = {"biz_demo_kirana": self._memory_data}
+
+    @property
+    def _data(self):
+        db = get_db()
+        if db.mode in ("firestore", "emulator"):
+            return FirestoreTenantData(db, get_business_id())
+        return self._tenant_memory.setdefault(get_business_id(), self._empty_business_data(get_business_id()))
+
+    @_data.setter
+    def _data(self, value):
+        self._memory_data = value
+        self._tenant_memory = {"biz_demo_kirana": value}
+
+    @staticmethod
+    def _empty_business_data(business_id: str):
+        data = copy.deepcopy(DEFAULT_SEED_DATA)
+        data["business"] = {
+            "id": business_id, "name": "", "currency": "INR", "timezone": "Asia/Kolkata",
+            "opening_cash_paise": 0, "cash_safety_buffer_paise": 1500000, "is_demo": False,
+        }
+        for key in ("customers", "suppliers", "supplier_bills", "transactions", "repayment_plans", "budgets", "audit_events", "ai_interaction_logs"):
+            data[key] = []
+        data["reminders"] = {}
+        data["import_batches"] = {}
+        data["scenarios"] = {}
+        data["notification_preferences"] = copy.deepcopy(DEFAULT_SEED_DATA["notification_preferences"])
+        return data
+
+    def add_memory_business(self, business: dict):
+        business_id = business["id"]
+        self._memory_data.setdefault("businesses", {})[business_id] = business
+        data = self._tenant_memory.setdefault(business_id, self._empty_business_data(business_id))
+        data["business"] = business
 
     def reset(self):
         """Reset demo data to canonical factory default."""
-        self._data = copy.deepcopy(DEFAULT_SEED_DATA)
+        db = get_db()
+        if db.mode in ("firestore", "emulator"):
+            tenant = FirestoreTenantData(db, "biz_demo_kirana")
+            for field, value in DEFAULT_SEED_DATA.items():
+                if field == "business":
+                    tenant[field] = {**copy.deepcopy(value), "id": "biz_demo_kirana"}
+                elif field in {"customers", "suppliers", "supplier_bills", "transactions", "repayment_plans", "budgets", "audit_events", "ai_interaction_logs"}:
+                    collection = db.business_collection("biz_demo_kirana", "cash_events" if field == "transactions" else field)
+                    for doc in collection.stream(): doc.reference.delete()
+                    for row in value:
+                        collection.document(row["id"]).set(copy.deepcopy(row))
+                elif field in {"reminders", "import_batches", "scenarios"}:
+                    collection = db.business_collection("biz_demo_kirana", field)
+                    for doc in collection.stream(): doc.reference.delete()
+            tenant["notification_preferences"] = copy.deepcopy(DEFAULT_SEED_DATA["notification_preferences"])
+        else:
+            self._memory_data = copy.deepcopy(DEFAULT_SEED_DATA)
+            self._tenant_memory = {"biz_demo_kirana": self._memory_data}
         return {"status": "ok", "message": "Demo seed data successfully reset to factory defaults."}
 
     def get_business(self):
-        return self._data["business"]
+        try:
+            return self._data["business"]
+        except KeyError:
+            if get_db().mode in ("firestore", "emulator"):
+                return {}
+            raise
 
     def get_customers(self):
         return self._data["customers"]
