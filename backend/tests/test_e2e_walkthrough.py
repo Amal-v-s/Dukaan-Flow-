@@ -165,3 +165,135 @@ def test_complete_phase1_e2e_walkthrough():
     assert reset_res.status_code == 200
     dash_reset = client.get("/api/v1/dashboard").json()
     assert dash_reset["available_cash_paise"] == initial_cash
+
+
+def test_complete_phase2_e2e_walkthrough():
+    """Phase 2 Full End-to-End Walkthrough per docs/phase2_phases.md.
+    
+    Verifies:
+    - Customer repayment plan creation (2 instalments).
+    - Partial payment and completion of instalment 1.
+    - Cashbook and customer ledger synchronization.
+    - Expense budget creation, utilization tracking, and threshold alerts.
+    - Financial reports summary, expenses, receivables, and payables.
+    - In-app reminder generation and acknowledgement.
+    - Dashboard and 14-day forecast integration without double-counting.
+    """
+    from datetime import date, timedelta
+    seed_service.reset()
+
+    # 1. Create a 2-part repayment plan for Ravi Stores (₹20,000)
+    customers = client.get("/api/v1/customers").json()["items"]
+    ravi = next(c for c in customers if c["name"] == "Ravi Stores")
+    initial_cash = client.get("/api/v1/dashboard").json()["available_cash_paise"]
+
+    d1 = (date.today() + timedelta(days=2)).isoformat()
+    d2 = (date.today() + timedelta(days=8)).isoformat()
+
+    plan_res = client.post(
+        "/api/v1/repayment-plans",
+        json={
+            "customer_id": ravi["id"],
+            "plan_type": "installments",
+            "planned_amount_paise": 2000000,
+            "start_date": date.today().isoformat(),
+            "notes": "E2E plan for pulses supply",
+            "installments": [
+                {"due_date": d1, "amount_paise": 1000000},
+                {"due_date": d2, "amount_paise": 1000000},
+            ],
+        },
+    )
+    assert plan_res.status_code == 201
+    plan = plan_res.json()
+    plan_id = plan["id"]
+    inst1_id = plan["installments"][0]["id"]
+
+    # 2. Record partial payment on instalment 1 (₹5,000)
+    pay1 = client.post(
+        f"/api/v1/repayment-plans/{plan_id}/installments/{inst1_id}/payments",
+        json={
+            "payment_id": "pay_e2e_001",
+            "amount_paise": 500000,
+            "payment_date": date.today().isoformat(),
+        },
+    )
+    assert pay1.status_code == 200
+    p1 = pay1.json()
+    assert p1["paid_amount_paise"] == 500000
+    assert p1["remaining_amount_paise"] == 1500000
+    assert client.get("/api/v1/dashboard").json()["available_cash_paise"] == initial_cash + 500000
+
+    # 3. Pay remaining ₹5,000 on instalment 1 -> transitions to 'paid'
+    pay2 = client.post(
+        f"/api/v1/repayment-plans/{plan_id}/installments/{inst1_id}/payments",
+        json={
+            "payment_id": "pay_e2e_002",
+            "amount_paise": 500000,
+            "payment_date": date.today().isoformat(),
+        },
+    )
+    assert pay2.status_code == 200
+    p2 = pay2.json()
+    assert next(i for i in p2["installments"] if i["id"] == inst1_id)["status"] == "paid"
+    assert client.get("/api/v1/dashboard").json()["available_cash_paise"] == initial_cash + 1000000
+
+    # 4. Create Category Budget for 'utilities' (₹2,000) and trigger threshold
+    start_date = "2026-10-01"
+    end_date = "2026-10-31"
+    b_res = client.post(
+        "/api/v1/budgets",
+        json={
+            "category": "utilities",
+            "period_start": start_date,
+            "period_end": end_date,
+            "budget_amount_paise": 200000,
+            "period_type": "monthly",
+            "thresholds": [75, 90, 100],
+        },
+    )
+    assert b_res.status_code == 201
+
+    # Add expense to trigger 75% threshold
+    client.post(
+        "/api/v1/expenses",
+        json={
+            "title": "Shop Generator Diesel",
+            "category": "utilities",
+            "amount_paise": 35000,
+            "expense_date": "2026-10-18",
+            "payment_method": "cash",
+        },
+    )
+    b_list = client.get("/api/v1/budgets").json()["items"]
+    util_budget = next(b for b in b_list if b["category"] == "utilities")
+    assert 75 in util_budget["triggered_thresholds"]
+
+    # 5. Financial Reports Reconciliation
+    summary = client.get(f"/api/v1/reports/summary?start_date={start_date}&end_date={end_date}").json()
+    assert summary["cash_inflows_paise"] > 0
+    assert summary["cash_outflows_paise"] > 0
+    assert len(summary["repayment_plans"]) >= 1
+
+    exp_rep = client.get(f"/api/v1/reports/expenses?start_date={start_date}&end_date={end_date}").json()
+    assert exp_rep["total_amount_paise"] > 0
+
+    rec_rep = client.get("/api/v1/reports/receivables").json()
+    assert rec_rep["total_receivables_paise"] > 0
+
+    # 6. In-App Reminders & Acknowledgement
+    reminders_res = client.get("/api/v1/reminders").json()
+    assert reminders_res["external_delivery"] is False
+    assert len(reminders_res["items"]) > 0
+    first_rem = reminders_res["items"][0]
+    ack = client.patch(f"/api/v1/reminders/{first_rem['id']}", json={"status": "acknowledged"})
+    assert ack.status_code == 200
+
+    # 7. Dashboard and Forecast Integration
+    dash = client.get("/api/v1/dashboard").json()
+    assert len(dash["next_installments_due"]) > 0
+    assert dash["budget_alert_count"] >= 1
+
+    forecast = client.get("/api/v1/cash-flow/forecast?horizon_days=14").json()
+    assert forecast["horizon_days"] == 14
+

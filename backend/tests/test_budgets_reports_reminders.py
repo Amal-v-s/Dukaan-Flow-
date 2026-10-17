@@ -123,3 +123,34 @@ def test_reminders_generation_and_acknowledgement():
     ack_res = client.patch(f"/api/v1/reminders/{r1['id']}", json={"status": "acknowledged"})
     assert ack_res.status_code == 200
     assert ack_res.json()["status"] == "acknowledged"
+
+
+def test_sub_reports_endpoints():
+    """Verify Phase 2E sub-report endpoints for expenses, receivables, and payables."""
+    start_date = "2026-10-01"
+    end_date = "2026-10-31"
+
+    # 1. Expenses report
+    exp_res = client.get(f"/api/v1/reports/expenses?start_date={start_date}&end_date={end_date}")
+    assert exp_res.status_code == 200
+    exp_data = exp_res.json()
+    assert "items" in exp_data
+    assert "total_amount_paise" in exp_data
+    assert exp_data["total_amount_paise"] == sum(x["amount_paise"] for x in exp_data["items"])
+
+    # 2. Receivables report
+    rec_res = client.get("/api/v1/reports/receivables")
+    assert rec_res.status_code == 200
+    rec_data = rec_res.json()
+    assert "items" in rec_data
+    assert "total_receivables_paise" in rec_data
+    assert len(rec_data["items"]) == len(client.get("/api/v1/customers").json()["items"])
+
+    # 3. Payables report
+    pay_res = client.get("/api/v1/reports/payables")
+    assert pay_res.status_code == 200
+    pay_data = pay_res.json()
+    assert "items" in pay_data
+    assert "total_payables_paise" in pay_data
+    assert len(pay_data["items"]) > 0
+
