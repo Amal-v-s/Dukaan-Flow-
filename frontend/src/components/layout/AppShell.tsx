@@ -13,6 +13,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/simulator': { title: 'What-If Cash Simulator', subtitle: 'Test hypothetical collections and bill shifts without altering actual records' },
   '/settings': { title: 'Store Settings', subtitle: 'Safety buffer configuration and business parameters' },
   '/management': { title: 'Business Management', subtitle: 'Repayment schedules, budgets, reports, and in-app reminders' },
+  '/imports': { title: 'Import Expenses', subtitle: 'Validate a CSV preview and confirm before adding cashbook records' },
 }
 
 export const AppShell: React.FC = () => {

@@ -147,6 +147,9 @@ DEFAULT_SEED_DATA: Dict[str, Any] = {
     "budgets": [],
     "reminders": {},
     "audit_events": [],
+    "ai_interaction_logs": [],
+    "import_batches": {},
+    "notification_preferences": {"lead_time_days": 7, "customer_instalments_enabled": True, "supplier_bills_enabled": True},
 }
 
 

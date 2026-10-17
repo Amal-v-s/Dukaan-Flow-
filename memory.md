@@ -248,6 +248,16 @@ Every agent and developer working on this codebase must adhere strictly to these
     - Live browser automation: End-to-end plan creation, budget creation, and reminders verified via browser subagent (`phase2_ui_verified_1792220850465.webp` and `management_page_completed_1792220951392.png`).
 * **Next Active Phase:** Phase 3 (Persistent Firestore storage, Google Cloud Run deployment, and Gemini Vertex AI Grounded Summaries).
 
+### Phase 3 Implementation Log
+* **Status:** IN PROGRESS, following `docs/phase3_phases.md` (AI boundary, grounded outputs, business brief, reminder drafts, CSV export/import, and notification preferences). The Phase 3 demo feature slice is implemented; the broader release criteria remain open.
+* **Standing preference:** Update `memory.md` after each implementation milestone and keep tests aligned to delivered behavior.
+* **Existing Phase 2 test suites:** Added by the user; do not modify them while implementing Phase 3.
+* **Safety constraints:** AI is optional and server-side. It receives minimized backend-calculated facts, cannot change ledger/report/forecast facts, and cannot send messages. Imports are staged, validated, previewed, and require explicit confirmation. External notification delivery remains disabled unless separately configured.
+* **Milestone 3A–3G demo slice implemented:** Added the isolated Gemini REST adapter/configuration and strict structured output, deterministic fallback, grounded alert/forecast/business brief/reminder-draft routes, report/record CSV exports with spreadsheet formula escaping, staged expense CSV preview/validation/idempotent confirmation, configurable in-app notification preferences, and frontend workflows for explanations, briefs, editable reminder drafts, exports, and imports. Updated the Phase 3 API, flow, architecture, testing, database, and AI documentation, plus README configuration guidance.
+* **Milestone 3H feature verification:** Added `backend/tests/test_phase3_features.py` with 18 tests covering provider-off/failure fallbacks, schema and source grounding, invalid numeric/URL claims, prompt-injection resilience, reminder drafts, safe exports, staged imports and compensating rollback, import limits/idempotency, rate limiting, and notification preference validation. `python -m pytest backend/tests/test_phase3_features.py -q`: **18 passed**. `python -m compileall -q backend/app`: passed. `npm run build` from `frontend`: TypeScript and Vite production build passed. `git diff --check`: passed. Phase 2 test files were left untouched.
+* **Known release gaps:** The demo uses in-memory state and has no authentication or tenant authorization. The provider implementation uses the Gemini API key REST endpoint (disabled unless configured), not Vertex AI credentials. External notification delivery remains disabled. These must be addressed before production release; Phase 3 release evaluation, full end-to-end coverage, and cross-tenant authorization checks remain outstanding.
+* **Next Active Phase:** Phase 3H release hardening: complete authenticated tenant boundaries and persistence, add the documented evaluation/security/E2E coverage, then run Phase 1/2 regression tests without modifying the user's Phase 2 test files.
+
 ---
 
 ## 5. Phase Update Protocol (For All Agents & Contributors)

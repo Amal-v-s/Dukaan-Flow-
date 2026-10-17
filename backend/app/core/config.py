@@ -9,6 +9,11 @@ class Settings(BaseModel):
     DEFAULT_TIMEZONE: str = os.getenv("DEFAULT_TIMEZONE", "Asia/Kolkata")
     DEFAULT_CURRENCY: str = "INR"
     DEFAULT_SAFETY_BUFFER_PAISE: int = 1500000  # ₹15,000
+    AI_FEATURES_ENABLED: bool = os.getenv("AI_FEATURES_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    AI_REQUEST_TIMEOUT_SECONDS: int = int(os.getenv("AI_REQUEST_TIMEOUT_SECONDS", "12"))
+    AI_MAX_OUTPUT_TOKENS: int = int(os.getenv("AI_MAX_OUTPUT_TOKENS", "512"))
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

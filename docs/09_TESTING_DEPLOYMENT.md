@@ -90,3 +90,9 @@ known cross-business authorization bypass.
 -   [ ] Backup and restore plan defined before production use.
 -   [ ] Rollback procedure documented.
 -   [ ] Privacy notice and terms reviewed before real-user onboarding.
+
+### Phase 3 feature tests
+
+Run `python -m pytest backend/tests/test_phase3_features.py -q` for deterministic AI fallback/grounding validation, timeout handling, reminder draft safety, formula-safe CSV export, staged import confirmation/idempotency, duplicate/encoding validation, rate limiting, and notification preference checks. Live Gemini calls are mocked in tests; no API key is required.
+
+`backend/.env.example` lists optional AI settings. AI defaults off. Set the values in the backend process environment to enable Gemini; never place a real key in frontend configuration or source control. This demo does not implement authentication or business membership checks, so do not deploy it with real merchant data.
