@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from app.schemas.dashboard import DashboardResponse, ForecastSummary, RecentTransactionDTO, UpcomingItemDTO
 from app.services.seed_data import seed_service
+from app.services.phase2_service import list_plans, budget_views
 
 router = APIRouter(prefix="/api/v1", tags=["Dashboard"])
 
@@ -87,4 +88,7 @@ def get_dashboard():
         ),
         recent_transactions=recent,
         upcoming_items=upcoming,
+        next_installments_due=[{"plan_id": p["id"], "installment_id": i["id"], "customer_name": p["customer_name"], "due_date": i["due_date"], "amount_paise": i["amount_paise"] - i["paid_amount_paise"]} for p in list_plans() if p["status"] not in ("cancelled", "completed") for i in p["installments"] if i["status"] != "paid"][:5],
+        overdue_plan_count=sum(1 for p in list_plans() if p["status"] == "overdue"),
+        budget_alert_count=sum(1 for b in budget_views() if b["triggered_thresholds"]),
     )

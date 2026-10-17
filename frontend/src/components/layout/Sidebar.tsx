@@ -10,6 +10,7 @@ import {
   Settings,
   Store,
   ShieldCheck
+  , ClipboardList
 } from 'lucide-react'
 
 interface NavItem {
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { name: 'Transactions', to: '/transactions', icon: ArrowLeftRight },
   { name: 'Cash Flow', to: '/cash-flow', icon: LineChart },
   { name: 'What-If Simulator', to: '/simulator', icon: SlidersHorizontal },
+  { name: 'Business Management', to: '/management', icon: ClipboardList },
   { name: 'Settings', to: '/settings', icon: Settings },
 ]
 

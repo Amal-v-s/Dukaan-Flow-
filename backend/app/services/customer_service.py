@@ -13,6 +13,7 @@ from app.schemas.customer import (
     LedgerEntryDTO,
 )
 from app.services.seed_data import seed_service
+from app.services.phase2_service import allocate_unplanned_repayment
 
 
 class CustomerService:
@@ -174,6 +175,9 @@ class CustomerService:
 
         entries.append(new_entry)
         c["last_activity_date"] = req.effective_date
+
+        if req.entry_type == "repayment":
+            allocate_unplanned_repayment(customer_id, req.amount_paise, req.effective_date)
 
         # Recalculate balance
         outstanding, total_credit, total_repaid = calculate_customer_balance(entries)

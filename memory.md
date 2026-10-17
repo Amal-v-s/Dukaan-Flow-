@@ -71,6 +71,8 @@ Every agent and developer working on this codebase must adhere strictly to these
 | **Phase 1F** | What-If Simulator | Hypothetical event overrides, baseline vs scenario comparison, zero ledger mutation | ✅ **COMPLETED** | Antigravity (Gravitas) |
 | **Phase 1G** | Demo Hardening | Form validation, empty/loading/error states, seed reset script, E2E demo run | ✅ **COMPLETED** | Antigravity (Gravitas) |
 | **All Phase 1**| **Full Definition of Done** | **End-to-End Ledger, Deterministic Forecast, Alerts, and What-If Simulator** | 🏆 **100% COMPLETE** | Antigravity (Gravitas) |
+| **Phase 2A-2G** | Business Management Features | Repayment plans, instalments, overdue tracking, budgets, reports, in-app reminders, dashboard/forecast integration | ✅ **IMPLEMENTED (DEMO)** | Codex |
+| **Phase 2H** | Release Hardening | Acceptance tests, accessibility/responsive review, full E2E, regression verification | ⏳ **PENDING** | Next |
 
 ---
 
@@ -85,7 +87,7 @@ Every agent and developer working on this codebase must adhere strictly to these
   - Dynamic cash shortage and safety buffer breach alerts with root-cause attribution chips.
   - Isolated What-If Simulator with verified ZERO database mutation.
   - Automated verification suite: **32/32 tests passing** in under 1 second; clean TypeScript build.
-* **Next Active Phase:** Phase 2 (Customer Reminders, WhatsApp templates, Repayment Plans, Reports & Budgets).
+* **Next Active Phase:** Phase 2H release hardening and acceptance coverage.
 
 ---
 
@@ -221,6 +223,24 @@ Every agent and developer working on this codebase must adhere strictly to these
   - `python -m pytest backend`: **32 passed in 1.86s** (100% green across all unit, domain, API, and E2E walkthrough suites).
   - `npm run build`: **Built in 521ms** with TypeScript strict mode, 0 errors, 0 lint warnings.
 
+
+---
+
+## Phase 2 Implementation Status
+
+### Current Status: Phase 2A-2G implemented for the in-memory demo; release hardening remains
+* **Milestone:** Added repayment schedules and payment tracking, date-derived overdue state, expense budgets, server-calculated summary reports, idempotent in-app reminders, and dashboard/forecast integration.
+* **Phase 2A/2B:** Repayment plans support full-payment schedules and instalment schedules. Plans allocate only existing posted credit-sale balances. Instalment payments are capped at the instalment remainder and append one repayment ledger entry, one cashbook inflow, and an audit event. Partial payments update plan progress; paid/completed and cancelled plans reject new payments.
+* **Phase 2C:** Instalment and plan overdue state is derived on read from due date and remaining amount. Plan cancellation requires a reason and records an audit event. Cancellation is supported only before payments have been recorded.
+* **Phase 2D:** Period budgets total paid expense transactions by category, expose remaining/utilization, and trigger configurable 75/90/100 percent thresholds. Supplier bills remain separate from expense totals.
+* **Phase 2E:** Date-filtered summary report separates cash inflows/outflows and expenses by category from current receivables/payables, plans, and budgets.
+* **Phase 2F:** Reminder list covers unpaid customer instalments and supplier bills due within seven days, deduplicates by type/source/due date, and supports acknowledged state. Delivery is in-app only.
+* **Phase 2G:** Dashboard exposes upcoming instalments, overdue plan count, and budget alert count. Forecast replaces allocated credit-sale collection amounts with scheduled instalments and labels them as estimates.
+* **UI:** Added Business Management navigation with Repayment Plans, Budgets, Reports, and Reminders sections, including loading, empty, error, and save feedback states.
+* **Files created/modified:** `backend/app/services/phase2_service.py`, `backend/app/api/v1/management.py`, `backend/app/api/v1/cashflow.py`, `backend/app/api/v1/dashboard.py`, `backend/app/schemas/dashboard.py`, `backend/app/services/seed_data.py`, `backend/app/services/customer_service.py`, `backend/app/main.py`, `frontend/src/features/management/ManagementPage.tsx`, `frontend/src/App.tsx`, `frontend/src/components/layout/Sidebar.tsx`, `frontend/src/components/layout/AppShell.tsx`, `frontend/src/features/dashboard/DashboardPage.tsx`, `docs/05_API_SPEC.md`, `docs/APP_FLOW.md`.
+* **Verification:** `python -m compileall -q backend/app` passed. `npm --prefix frontend run build` passed (TypeScript and Vite production build). `git diff --check` passed. No automated tests were added or run during this implementation.
+* **Limitations / next work:** The repository remains an in-memory demo with no authentication or tenant membership enforcement, so Phase 2 data is volatile and not production safe. The management UI creates full-payment or two-part weekly instalment plans; the API accepts arbitrary schedules. Budget updates are supported by API. No external WhatsApp/SMS delivery is included. Phase 2H accessibility/E2E review and dedicated acceptance tests remain to be done.
+* **Next Active Phase:** Phase 2H release hardening and test coverage, followed by persistent storage/auth before production use.
 
 ---
 

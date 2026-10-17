@@ -7,6 +7,7 @@ import { TransactionsPage } from './features/transactions/TransactionsPage'
 import { CashFlowPage } from './features/cashflow/CashFlowPage'
 import { SimulatorPage } from './features/simulator/SimulatorPage'
 import { SettingsPage } from './features/settings/SettingsPage'
+import { ManagementPage } from './features/management/ManagementPage'
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
           <Route path="/cash-flow" element={<CashFlowPage />} />
           <Route path="/simulator" element={<SimulatorPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/management" element={<ManagementPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

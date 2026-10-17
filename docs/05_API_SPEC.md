@@ -233,6 +233,18 @@ must never mutate ledger records.
 -   AI explanation endpoint only in Phase 3 and must consume
     server-calculated facts.
 
+## Phase 2 Demo Endpoints
+
+- `GET/POST /api/v1/repayment-plans`
+- `GET /api/v1/repayment-plans/{plan_id}`
+- `POST /api/v1/repayment-plans/{plan_id}/installments/{installment_id}/payments`
+- `PATCH /api/v1/repayment-plans/{plan_id}/cancel` (reason required)
+- `GET/POST /api/v1/budgets`, `PATCH /api/v1/budgets/{budget_id}`
+- `GET /api/v1/reports/summary?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+- `GET /api/v1/reminders`, `PATCH /api/v1/reminders/{reminder_id}` (`read` or `acknowledged`)
+
+These Phase 2 endpoints currently use the process-local demo store. Repayment-plan dates are estimates; the payment endpoint records actual cash and ledger changes. Authentication and tenant isolation are not implemented in this demo, so do not use it for production data.
+
 ## 11. Status Codes
 
 -   `200`: successful read/update
