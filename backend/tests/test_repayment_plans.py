@@ -263,3 +263,79 @@ def test_cancel_plan_lifecycle():
         },
     )
     assert res_pay.status_code == 409
+
+
+def test_plan_patch_notes():
+    """Verify updating plan notes via PATCH /api/v1/repayment-plans/{plan_id}."""
+    customers = client.get("/api/v1/customers").json()["items"]
+    ravi_id = next(c for c in customers if c["name"] == "Ravi Stores")["id"]
+
+    plan = client.post(
+        "/api/v1/repayment-plans",
+        json={
+            "customer_id": ravi_id,
+            "plan_type": "full_payment",
+            "planned_amount_paise": 1000000,
+            "start_date": date.today().isoformat(),
+            "notes": "Initial note",
+            "installments": [
+                {"due_date": (date.today() + timedelta(days=5)).isoformat(), "amount_paise": 1000000}
+            ],
+        },
+    ).json()
+
+    patch_res = client.patch(f"/api/v1/repayment-plans/{plan['id']}", json={"notes": "Updated terms via shopkeeper agreement"})
+    assert patch_res.status_code == 200
+    assert patch_res.json()["notes"] == "Updated terms via shopkeeper agreement"
+
+
+def test_days_overdue_and_derived_status():
+    """Verify Phase 2C overdue calculation: days overdue derived from date and paid instalments are never overdue."""
+    customers = client.get("/api/v1/customers").json()["items"]
+    sharma_id = next(c for c in customers if c["name"] == "Sharma General Store")["id"]
+
+    past_start = (date.today() - timedelta(days=10)).isoformat()
+    past_due_1 = (date.today() - timedelta(days=4)).isoformat()  # 4 days overdue
+    future_due_2 = (date.today() + timedelta(days=5)).isoformat()
+
+    plan = client.post(
+        "/api/v1/repayment-plans",
+        json={
+            "customer_id": sharma_id,
+            "plan_type": "installments",
+            "planned_amount_paise": 2000000,
+            "start_date": past_start,
+            "installments": [
+                {"due_date": past_due_1, "amount_paise": 1000000},
+                {"due_date": future_due_2, "amount_paise": 1000000},
+            ],
+        },
+    ).json()
+
+    plan_id = plan["id"]
+    inst1 = plan["installments"][0]
+
+    # Check that overdue status and days_overdue are calculated
+    assert inst1["status"] == "overdue"
+    assert inst1["days_overdue"] == 4
+    assert plan["status"] == "overdue"
+    assert plan["days_overdue"] == 4
+
+    # Now pay the overdue instalment in full -> must transition to 'paid' and days_overdue = 0
+    client.post(
+        f"/api/v1/repayment-plans/{plan_id}/installments/{inst1['id']}/payments",
+        json={
+            "payment_id": "pay_overdue_remedied",
+            "amount_paise": 1000000,
+            "payment_date": date.today().isoformat(),
+        },
+    )
+
+    refreshed_plan = client.get(f"/api/v1/repayment-plans/{plan_id}").json()
+    i1_refreshed = refreshed_plan["installments"][0]
+    assert i1_refreshed["status"] == "paid"
+    assert i1_refreshed["days_overdue"] == 0
+    # Overall plan is no longer overdue because remaining instalment is in future
+    assert refreshed_plan["status"] == "active"
+    assert refreshed_plan["days_overdue"] == 0
+

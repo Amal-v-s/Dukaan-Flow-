@@ -25,11 +25,14 @@ def plan_view(plan: dict) -> dict:
     now = today()
     for inst in plan["installments"]:
         rem = inst["amount_paise"] - inst["paid_amount_paise"]
-        inst["status"] = "paid" if rem == 0 else ("overdue" if date.fromisoformat(inst["due_date"]) < now else ("partially_paid" if inst["paid_amount_paise"] else "upcoming"))
+        due_d = date.fromisoformat(inst["due_date"])
+        inst["days_overdue"] = max(0, (now - due_d).days) if (due_d < now and rem > 0) else 0
+        inst["status"] = "paid" if rem == 0 else ("overdue" if due_d < now else ("partially_paid" if inst["paid_amount_paise"] else "upcoming"))
     paid = sum(x["paid_amount_paise"] for x in plan["installments"])
     remaining = plan["planned_amount_paise"] - paid
     plan["paid_amount_paise"] = paid
     plan["remaining_amount_paise"] = remaining
+    plan["days_overdue"] = max([inst["days_overdue"] for inst in plan["installments"]] or [0])
     if plan.get("status") != "cancelled":
         plan["status"] = "completed" if remaining == 0 else ("overdue" if any(x["status"] == "overdue" for x in plan["installments"]) else "active")
     return plan
@@ -141,6 +144,17 @@ def cancel_plan(plan_id: str, reason: str) -> dict:
     p["status"] = "cancelled"; p["cancel_reason"] = reason.strip()
     _store().setdefault("audit_events", []).append({"id": f"audit_{uuid4().hex[:8]}", "type": "repayment_plan_cancelled", "source_id": plan_id, "reason": reason.strip(), "created_at": datetime.now().isoformat()})
     return plan_view(p)
+
+
+def update_plan(plan_id: str, payload: dict) -> dict:
+    p = next((x for x in plans() if x["id"] == plan_id), None)
+    if not p: raise HTTPException(404, "Repayment plan not found")
+    if "notes" in payload and payload["notes"] is not None:
+        p["notes"] = payload["notes"]
+    if "cancel_reason" in payload and payload["cancel_reason"]:
+        return cancel_plan(plan_id, payload["cancel_reason"])
+    return plan_view(p)
+
 
 
 def budgets() -> list[dict]: return _store().setdefault("budgets", [])

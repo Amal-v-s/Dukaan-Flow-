@@ -278,3 +278,6 @@ Whenever you finish working on a phase or significant milestone:
 * [`docs/PRODUCTION_CODING_RULES.md`](file:///d:/gch/Dukaan-Flow-/docs/PRODUCTION_CODING_RULES.md) --- Production Coding Guidelines
 * [`docs/PRODUCTION_SECURITY.md`](file:///d:/gch/Dukaan-Flow-/docs/PRODUCTION_SECURITY.md) --- Security Rules & Boundary Safeguards
 * [`docs/phase1_phases.md`](file:///d:/gch/Dukaan-Flow-/docs/phase1_phases.md) --- Detailed Phase 1 Subphases & DoD
+* [`docs/phase2_phases.md`](file:///d:/gch/Dukaan-Flow-/docs/phase2_phases.md) --- Detailed Phase 2 Subphases & DoD
+* [`docs/phase3_phases.md`](file:///d:/gch/Dukaan-Flow-/docs/phase3_phases.md) --- Detailed Phase 3 Subphases & DoD
+
