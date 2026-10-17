@@ -198,6 +198,11 @@ Example:
 
 ## 9. What-If Simulator
 
+-   `GET /api/v1/scenarios/options?horizon_days=14` returns eligible
+    collections and supplier bills in the current business forecast
+    window.
+-   `POST /api/v1/scenarios/preview?horizon_days=14` previews one event
+    change or hypothetical expense without saving a scenario.
 -   `POST /api/v1/scenarios`
 -   `GET /api/v1/scenarios`
 -   `GET /api/v1/scenarios/{scenario_id}`
@@ -206,7 +211,7 @@ Example:
 -   `DELETE /api/v1/scenarios/{scenario_id}` for draft scenarios only,
     if deletion is enabled.
 
-Scenario event example:
+Preview request example:
 
 ``` json
 {
@@ -217,6 +222,10 @@ Scenario event example:
   "scenario_date": "2026-10-19"
 }
 ```
+
+For an unexpected expense, use `event_type: "extra_expense"` and omit
+`source_id` and `original_date`. Preview dates must fall within the
+requested forecast window.
 
 Forecast response should contain baseline and scenario series, delta at
 each date, lowest balance/date, and shortage status. Scenario changes

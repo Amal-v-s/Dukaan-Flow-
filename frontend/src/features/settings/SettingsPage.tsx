@@ -1,15 +1,58 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Shield, Store, CheckCircle2 } from 'lucide-react'
 import { formatPaiseToINR } from '../../lib/formatters'
+import { apiFetch } from '../../lib/api'
 
 export const SettingsPage: React.FC = () => {
-  const [bufferInr, setBufferInr] = useState('15000')
+  const [bufferInr, setBufferInr] = useState('')
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [business, setBusiness] = useState({ name: '', currency: 'INR', timezone: 'Asia/Kolkata' })
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    let active = true
+    apiFetch('/api/v1/settings')
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data?.error?.message || 'Could not load settings')
+        if (active) {
+          setBufferInr(String(data.cash_safety_buffer_paise / 100))
+          setBusiness({ name: data.business_name, currency: data.currency, timezone: data.timezone })
+        }
+      })
+      .catch((err) => { if (active) setError(err.message || 'Could not load settings') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    const rupees = Number(bufferInr)
+    if (!Number.isSafeInteger(rupees) || rupees < 0) {
+      setError('Enter a whole, non-negative amount in rupees.')
+      return
+    }
+    setSaving(true)
+    setError('')
+    setSaved(false)
+    try {
+      const response = await apiFetch('/api/v1/settings/safety-buffer', {
+        method: 'PATCH',
+        body: JSON.stringify({ cash_safety_buffer_paise: rupees * 100 }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error?.message || 'Could not save buffer')
+      setBufferInr(String(data.cash_safety_buffer_paise / 100))
+      window.dispatchEvent(new CustomEvent('dukaanflow:safety-buffer-updated', { detail: data.cash_safety_buffer_paise }))
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2500)
+    } catch (err: any) {
+      setError(err.message || 'Could not save buffer')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -32,22 +75,26 @@ export const SettingsPage: React.FC = () => {
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#737780]">₹</span>
               <input
                 type="number"
+                min="0"
+                step="1"
                 value={bufferInr}
                 onChange={(e) => setBufferInr(e.target.value)}
+                disabled={loading || saving}
                 className="w-full pl-8 pr-3 py-2 bg-white border border-[#E8EAED] rounded-lg text-xs font-bold tabular-nums text-[#17191C] focus:outline-none focus:border-[#16A36A]"
               />
             </div>
             <p className="text-[11px] text-[#737780] mt-1.5">
-              Current buffer: <strong className="tabular-nums">{formatPaiseToINR(parseInt(bufferInr || '0', 10) * 100)}</strong>
+              Current buffer: <strong className="tabular-nums">{formatPaiseToINR((Number(bufferInr) || 0) * 100)}</strong>
             </p>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
+              disabled={loading || saving}
               className="px-4 py-2 bg-[#16A36A] hover:bg-[#0D6843] text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
             >
-              Update Buffer
+              {saving ? 'Saving…' : 'Update Buffer'}
             </button>
             {saved && (
               <span className="text-xs font-semibold text-[#16A36A] flex items-center gap-1">
@@ -55,6 +102,7 @@ export const SettingsPage: React.FC = () => {
                 Settings saved!
               </span>
             )}
+            {error && <span role="alert" className="text-xs font-semibold text-[#DC5555]">{error}</span>}
           </div>
         </form>
       </div>
@@ -71,15 +119,15 @@ export const SettingsPage: React.FC = () => {
         <div className="space-y-3 text-xs">
           <div className="flex justify-between py-1 border-b border-[#F0F2F5]">
             <span className="text-[#737780]">Store Name:</span>
-            <span className="font-semibold text-[#17191C]">Demo Kirana Store</span>
+            <span className="font-semibold text-[#17191C]">{business.name || '—'}</span>
           </div>
           <div className="flex justify-between py-1 border-b border-[#F0F2F5]">
             <span className="text-[#737780]">Currency:</span>
-            <span className="font-semibold text-[#17191C]">INR (₹)</span>
+            <span className="font-semibold text-[#17191C]">{business.currency} (₹)</span>
           </div>
           <div className="flex justify-between py-1 border-b border-[#F0F2F5]">
             <span className="text-[#737780]">Timezone:</span>
-            <span className="font-semibold text-[#17191C]">Asia/Kolkata</span>
+            <span className="font-semibold text-[#17191C]">{business.timezone}</span>
           </div>
           <div className="flex justify-between py-1 border-b border-[#F0F2F5]">
             <span className="text-[#737780]">Storage Format:</span>

@@ -6,6 +6,7 @@ from app.schemas.scenario import (
     ScenarioEventCreate,
     ScenarioEventDTO,
     ScenarioForecastResponse,
+    ScenarioPreviewRequest,
 )
 from app.services.scenario_service import scenario_service
 
@@ -22,6 +23,18 @@ def create_scenario(payload: ScenarioCreate):
 def list_scenarios():
     """List all scenarios."""
     return scenario_service.list_scenarios()
+
+
+@router.get("/options")
+def get_scenario_options(horizon_days: int = Query(default=14, ge=1, le=60)):
+    """List real upcoming collections and bills that can be simulated."""
+    return scenario_service.event_options(horizon_days)
+
+
+@router.post("/preview", response_model=ScenarioForecastResponse)
+def preview_scenario(payload: ScenarioPreviewRequest, horizon_days: int = Query(default=14, ge=1, le=60)):
+    """Compare a single hypothetical change without saving a scenario."""
+    return scenario_service.preview_event(payload, horizon_days)
 
 
 @router.get("/{scenario_id}", response_model=ScenarioDTO)

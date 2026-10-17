@@ -296,6 +296,22 @@ Every agent and developer working on this codebase must adhere strictly to these
 * **Milestone 2:** Connected authenticated JWT business/user context to scoped persistence; added per-tenant in-memory fallback isolation, Firestore request write coalescing/read-your-writes with a safe 450-document batch cap, demo tenant seeding/reset scoping, persistent audit/idempotency/scenario/import/preferences data, Firestore setup docs, SDK dependencies, and emulator-gated test coverage. Expense import was capped at 400 rows to fit atomic Firestore writes.
 * **Verification:** `python -m pytest backend/tests/test_firestore_persistence.py backend/tests/test_phase3_features.py backend/tests/test_money.py -q`: **33 passed, 1 skipped** (emulator test skipped because SDK/emulator are unavailable). `python -m compileall -q backend/app`, `git diff --check`, frontend production build: passed. Full backend suite attempted but blocked by the environment's Starlette `TestClient` hang (reproduced on the public `/health/live` endpoint); Phase 2 test files were not edited.
 
+### Safety Buffer UI Work Log
+* **Status:** COMPLETED. The top-right buffer now loads the active business's configured threshold and links to Store Settings. Settings loads tenant values from the API and saves the safety threshold to the tenant's business record; successful updates refresh the header immediately.
+* **Files:** Added `backend/app/api/v1/settings.py`; registered its protected router in `backend/app/main.py`; updated `frontend/src/components/layout/Header.tsx` and `frontend/src/features/settings/SettingsPage.tsx`.
+* **Verification:** `npm run build` in `frontend` passed (TypeScript and Vite production build). No tests added or run for this UI wiring change.
+
+### WhatsApp Customer Reminder Work Log
+* **Status:** COMPLETED. Added a WhatsApp action in the customer balance drawer. It opens a prefilled chat using the requested reminder wording, current outstanding balance, shop name, and earliest recorded credit due date; Indian 10-digit phone numbers receive the `91` country prefix. The merchant reviews and sends the message in WhatsApp.
+* **Files:** Updated `frontend/src/features/customers/CustomersPage.tsx` and this work log.
+* **Verification:** Frontend production build run after implementation.
+
+### What-If Simulator Simplification Work Log
+* **Status:** COMPLETED. Replaced demo-specific auto-updating controls with an explicit guided preview using real upcoming collection/bill choices or an unexpected expense. The result summary is shown first; chart and day-by-day rows are collapsed under forecast details. Preview requests do not create saved scenarios or mutate business records, and the forecast window uses the active business timezone/current date.
+* **Interfaces:** Added authenticated `GET /api/v1/scenarios/options` and `POST /api/v1/scenarios/preview`; the existing saved-scenario routes remain available.
+* **Files:** Updated `backend/app/services/scenario_service.py`, `backend/app/api/v1/scenarios.py`, `backend/app/schemas/scenario.py`, `frontend/src/features/simulator/SimulatorPage.tsx`, `docs/05_API_SPEC.md`, `docs/APP_FLOW.md`, and this log. Added `backend/tests/test_scenario_preview.py`.
+* **Verification:** `python -m pytest tests/test_scenario_preview.py -q`: **6 passed**; backend compile and `git diff --check` passed; frontend `npm run build` passed. A combined run with existing `test_scenarios.py` stalled in the repository's existing Starlette `TestClient` environment issue; the new service-level preview tests completed before that stall.
+
 ---
 
 ## 5. Phase Update Protocol (For All Agents & Contributors)

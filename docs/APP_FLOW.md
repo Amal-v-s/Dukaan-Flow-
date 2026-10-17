@@ -57,13 +57,13 @@ More
 ## 7. What-If Flow
 
 1.  Open Simulator.
-2.  Select a supported future event or add a hypothetical event.
-3.  Change amount/date or add a planned expense.
-4.  Backend calculates baseline and scenario using the same engine.
-5.  UI compares daily balances, minimum balance, and shortage status.
-6.  User can reset or save scenario.
-7.  Actual ledger remains unchanged unless the user separately performs
-    a real ledger action.
+2.  Select an upcoming collection or supplier bill, or add an unexpected
+    expense.
+3.  Adjust its amount/date and explicitly run the simulation.
+4.  Review the baseline and changed lowest cash balance, then open the
+    optional chart and daily comparison for details.
+5.  Preview calculations do not save a scenario or change actual
+    business records.
 
 ## 8. Error and Empty States
 

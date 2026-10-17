@@ -21,6 +21,7 @@ from app.api.v1.alerts import router as alerts_router
 from app.api.v1.scenarios import router as scenarios_router
 from app.api.v1.management import router as management_router
 from app.api.v1.phase3 import router as phase3_router
+from app.api.v1.settings import router as settings_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -127,3 +128,4 @@ app.include_router(alerts_router, dependencies=[_tenant_dependency])
 app.include_router(scenarios_router, dependencies=[_tenant_dependency])
 app.include_router(management_router, dependencies=[_tenant_dependency])
 app.include_router(phase3_router, dependencies=[_tenant_dependency])
+app.include_router(settings_router, dependencies=[_tenant_dependency])

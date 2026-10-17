@@ -1,36 +1,38 @@
-import React, { useState } from 'react'
-import { RotateCcw, CheckCircle2, Shield } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { Shield } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { apiFetch } from '../../lib/api'
+import { formatPaiseToINR } from '../../lib/formatters'
 
 interface HeaderProps {
   title: string
   subtitle?: string
-  onResetSeed?: () => Promise<void>
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle, onResetSeed }) => {
-  const [resetting, setResetting] = useState(false)
-  const [resetSuccess, setResetSuccess] = useState(false)
+export const Header: React.FC<HeaderProps> = ({ title, subtitle }) => {
+  const [bufferPaise, setBufferPaise] = useState<number | null>(null)
 
-  const handleReset = async () => {
-    if (resetting) return
-    setResetting(true)
-    try {
-      if (onResetSeed) {
-        await onResetSeed()
-      } else {
-        const res = await fetch('/api/v1/seed/reset', { method: 'POST' })
-        if (res.ok) {
-          window.location.reload()
-        }
-      }
-      setResetSuccess(true)
-      setTimeout(() => setResetSuccess(false), 3000)
-    } catch (err) {
-      console.error('Reset failed:', err)
-    } finally {
-      setResetting(false)
+  useEffect(() => {
+    let active = true
+    const handleBufferUpdate = (event: Event) => {
+      const value = (event as CustomEvent<number>).detail
+      if (Number.isInteger(value)) setBufferPaise(value)
     }
-  }
+    window.addEventListener('dukaanflow:safety-buffer-updated', handleBufferUpdate)
+    apiFetch('/api/v1/settings')
+      .then(async (response) => {
+        if (!response.ok) return
+        const data = await response.json()
+        if (active && Number.isInteger(data.cash_safety_buffer_paise)) {
+          setBufferPaise(data.cash_safety_buffer_paise)
+        }
+      })
+      .catch((error) => console.error('Could not load safety buffer:', error))
+    return () => {
+      active = false
+      window.removeEventListener('dukaanflow:safety-buffer-updated', handleBufferUpdate)
+    }
+  }, [])
 
   return (
     <header className="h-[72px] bg-white border-b border-[#E8EAED] px-6 lg:px-8 flex items-center justify-between sticky top-0 z-10">
@@ -41,10 +43,10 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onResetSeed }) 
 
       <div className="flex items-center gap-3">
         {/* Safety buffer pill */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FEF6EB] text-[#E9A23B] border border-[#FCD34D] text-xs font-semibold">
+        <Link to="/settings" title="Configure cash safety buffer" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FEF6EB] text-[#E9A23B] border border-[#FCD34D] text-xs font-semibold hover:bg-[#FFF0D6] transition-colors">
           <Shield className="w-3.5 h-3.5" />
-          <span>Buffer: ₹15,000</span>
-        </div>
+          <span>Buffer: {bufferPaise === null ? '…' : formatPaiseToINR(bufferPaise)}</span>
+        </Link>
 
         {/* Demo data badge */}
         <div className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F0F2F5] text-[#737780] text-xs font-medium">
@@ -52,23 +54,6 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onResetSeed }) 
           Sample Data
         </div>
 
-        {/* Reset button */}
-        <button
-          onClick={handleReset}
-          disabled={resetting}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E8EAED] bg-white text-xs font-semibold text-[#17191C] hover:bg-[#F7F8FA] active:bg-[#F0F2F5] transition-colors disabled:opacity-50"
-          title="Reset demo transactions and seed data"
-        >
-          <RotateCcw className={`w-3.5 h-3.5 text-[#737780] ${resetting ? 'animate-spin' : ''}`} />
-          <span>{resetting ? 'Resetting...' : 'Reset Demo'}</span>
-        </button>
-
-        {resetSuccess && (
-          <div className="flex items-center gap-1 text-xs text-[#16A36A] font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Reset!</span>
-          </div>
-        )}
       </div>
     </header>
   )
