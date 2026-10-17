@@ -1,0 +1,33 @@
+{
+  "mode": "implement",
+  "objective": "Phase 1F: What-If Simulator - Isolated scenario simulation with zero database mutation, baseline vs scenario comparison, interactive levers, and delta calculations",
+  "status": "COMPLETED",
+  "verdict": "PASS",
+  "acceptance_criteria": [
+    "Scenario schemas and service supporting scenario creation, event shifting (date/amount overrides), and ad-hoc hypothetical expenses/inflows",
+    "Run both baseline and scenario through the exact same pure deterministic forecast engine",
+    "Calculate day-by-day balance delta, minimum balance/date, and shortage status resolution",
+    "Strict isolation invariant: verify that simulating scenarios causes ZERO mutations to actual customer, supplier, transaction, or business records",
+    "API endpoints: POST /api/v1/scenarios, GET /api/v1/scenarios, POST /api/v1/scenarios/{id}/events, POST /api/v1/scenarios/{id}/forecast",
+    "Interactive UI in SimulatorPage.tsx with dynamic baseline vs scenario comparison charts, event shift toggles, and instant visual impact",
+    "Automated unit and API tests proving correctness and zero database mutation",
+    "Frontend build compiles cleanly with TypeScript strict mode"
+  ],
+  "evidence": {
+    "pytest": "31 passed in 0.68s (test_scenarios.py, test_alerts.py, test_api.py, test_forecast.py, test_ledger.py, test_money.py, test_suppliers_expenses.py)",
+    "frontend_build": "built in 581ms, 0 errors, TypeScript strict"
+  },
+  "non_goals": [
+    "Never persist scenario shifts to actual customer khata or supplier bills (purely isolated)",
+    "No AI arithmetic (pure deterministic comparison)"
+  ],
+  "risk": "medium",
+  "budget": "balanced",
+  "allowed_write_scope": [
+    "backend/",
+    "frontend/",
+    "memory.md",
+    ".gravitas/"
+  ],
+  "verification": "impact"
+}
