@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { RotateCcw, CheckCircle2, Shield } from 'lucide-react'
+import { formatPaiseToINR } from '../../lib/formatters'
 
 interface HeaderProps {
   title: string
@@ -10,6 +11,22 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, onResetSeed }) => {
   const [resetting, setResetting] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
+  const [bufferPaise, setBufferPaise] = useState<number>(1500000)
+
+  useEffect(() => {
+    let mounted = true
+    fetch('/api/v1/settings')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (mounted && data?.cash_safety_buffer_paise != null) {
+          setBufferPaise(data.cash_safety_buffer_paise)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const handleReset = async () => {
     if (resetting) return
@@ -43,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onResetSeed }) 
         {/* Safety buffer pill */}
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FEF6EB] text-[#E9A23B] border border-[#FCD34D] text-xs font-semibold">
           <Shield className="w-3.5 h-3.5" />
-          <span>Buffer: ₹15,000</span>
+          <span>Buffer: {formatPaiseToINR(bufferPaise)}</span>
         </div>
 
         {/* Demo data badge */}

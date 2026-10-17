@@ -32,6 +32,7 @@ export function App() {
               <Route element={<AppShell />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/khata" element={<Navigate to="/customers" replace />} />
                 <Route path="/suppliers" element={<SuppliersPage />} />
                 <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/cash-flow" element={<CashFlowPage />} />

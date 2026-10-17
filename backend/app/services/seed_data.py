@@ -224,6 +224,12 @@ class SeedService:
                 return {}
             raise
 
+    def update_business(self, updates: dict):
+        biz = dict(self.get_business())
+        biz.update(updates)
+        self._data["business"] = biz
+        return biz
+
     def get_customers(self):
         return self._data["customers"]
 
