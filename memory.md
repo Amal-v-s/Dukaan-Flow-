@@ -312,6 +312,11 @@ Every agent and developer working on this codebase must adhere strictly to these
 * **Files:** Updated `backend/app/services/scenario_service.py`, `backend/app/api/v1/scenarios.py`, `backend/app/schemas/scenario.py`, `frontend/src/features/simulator/SimulatorPage.tsx`, `docs/05_API_SPEC.md`, `docs/APP_FLOW.md`, and this log. Added `backend/tests/test_scenario_preview.py`.
 * **Verification:** `python -m pytest tests/test_scenario_preview.py -q`: **6 passed**; backend compile and `git diff --check` passed; frontend `npm run build` passed. A combined run with existing `test_scenarios.py` stalled in the repository's existing Starlette `TestClient` environment issue; the new service-level preview tests completed before that stall.
 
+### README Project Overview Work Log
+* **Status:** COMPLETED. Replaced the brief README with an end-to-end project overview, feature list, verified technology stack and runtime requirements, repository structure, local in-memory quick start, Firestore and Gemini setup, development checks, deployment notes, and documentation links.
+* **Files:** Updated `README.md` and this work log.
+* **Verification:** Checked setup commands against root/frontend package scripts, Python project requirements, Vite engine requirements, backend environment template, and Firebase Hosting config; `git diff --check` passed.
+
 ---
 
 ## 5. Phase Update Protocol (For All Agents & Contributors)
