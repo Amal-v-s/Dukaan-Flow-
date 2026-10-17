@@ -1,0 +1,33 @@
+{
+  "mode": "implement",
+  "objective": "Phase 1E: Shortage Alerts - Derived alert generation from forecast and safety buffer threshold, breach explanation, source record linking, and UI alert drawer/panel",
+  "status": "COMPLETED",
+  "verdict": "PASS",
+  "acceptance_criteria": [
+    "Alert generation service derived deterministically from 14-day cash-flow forecast and merchant safety buffer",
+    "Identify lowest dip date, severity (critical for below zero, warning for below safety buffer), deficit amount in integer paise, and threshold",
+    "Attribution of contributing events (which bills cause the deficit, which expected collections are missing or delayed)",
+    "API endpoint GET /api/v1/alerts returning active alerts with structured contributing events and suggested mitigation actions",
+    "PATCH /api/v1/alerts/{alert_id} state handling for acknowledgements",
+    "Frontend Alert Banner / Panel in DashboardPage and CashFlowPage linking directly to contributing records",
+    "Unit and API tests verifying alert generation, severity differentiation, and non-duplicate generation",
+    "Frontend build succeeds with zero errors"
+  ],
+  "evidence": {
+    "pytest": "28 passed in 0.56s (test_alerts.py, test_api.py, test_forecast.py, test_ledger.py, test_money.py, test_suppliers_expenses.py)",
+    "frontend_build": "built in 455ms, 0 errors, TypeScript strict"
+  },
+  "non_goals": [
+    "Do not use LLM for alert triggers (must be purely deterministic based on numbers)",
+    "Do not hardcode alerts; derive dynamically from current business balances, bills, and collections"
+  ],
+  "risk": "medium",
+  "budget": "balanced",
+  "allowed_write_scope": [
+    "backend/",
+    "frontend/",
+    "memory.md",
+    ".gravitas/"
+  ],
+  "verification": "impact"
+}

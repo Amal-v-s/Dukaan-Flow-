@@ -1,0 +1,31 @@
+{
+  "mode": "verify",
+  "objective": "Phase 1G: Demo Hardening & Verification - Empty states, loading skeletons, duplicate submission prevention on all financial forms, seed reset flow, end-to-end integration walkthrough, and zero external AI/payment dependencies",
+  "status": "COMPLETED",
+  "verdict": "PASS",
+  "acceptance_criteria": [
+    "Verify duplicate submission prevention and loading/disabled states on all money modals (Customer add, Credit sale, Repay, Supplier bill add, Bill pay, Expense add)",
+    "Verify empty states and error recovery across all primary pages",
+    "Verify demo seed reset flow works seamlessly via UI and POST /api/v1/seed/reset",
+    "Execute full E2E walkthrough script in an automated integration test verifying all Phase 1 DoD items",
+    "Confirm no critical flows depend on AI or external payment gateways",
+    "All tests pass (100% green) and frontend production bundle builds cleanly"
+  ],
+  "evidence": {
+    "pytest": "32 passed in 1.86s (test_e2e_walkthrough.py, test_scenarios.py, test_alerts.py, test_api.py, test_forecast.py, test_ledger.py, test_money.py, test_suppliers_expenses.py)",
+    "frontend_build": "built in 521ms, 0 errors, TypeScript strict"
+  },
+  "non_goals": [
+    "Phase 2 features (WhatsApp templates, repayment plans, CSV bulk upload)",
+    "Phase 3 features (Gemini conversational assistant)"
+  ],
+  "risk": "low",
+  "budget": "thorough",
+  "allowed_write_scope": [
+    "backend/",
+    "frontend/",
+    "memory.md",
+    ".gravitas/"
+  ],
+  "verification": "impact"
+}

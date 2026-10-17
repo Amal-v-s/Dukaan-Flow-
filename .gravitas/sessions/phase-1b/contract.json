@@ -1,0 +1,27 @@
+{
+  "mode": "implement",
+  "objective": "Phase 1B: Customer Khata - Customer CRUD, credit sales, partial and full repayments, server-side outstanding balance reconciliation, and cash synchronization",
+  "acceptance_criteria": [
+    "Customer creation API (POST /api/v1/customers) validates name, phone, notes [PASSED]",
+    "Customer detail and ledger query endpoints (GET /api/v1/customers/{id}, GET /api/v1/customers/{id}/ledger) [PASSED]",
+    "Ledger entry creation API (POST /api/v1/customers/{id}/ledger-entries) supporting credit_sale and repayment [PASSED]",
+    "Outstanding balance calculated as: posted credit_sales minus posted repayments [PASSED]",
+    "Overpayment rejected with 400 and clear error message [PASSED]",
+    "Valid repayment updates available cash by creating a linked cash inflow transaction [PASSED]",
+    "Frontend customer detail modal / view with ledger transaction history, +Credit form, and Repay form [PASSED]",
+    "All monetary amounts use integer paise; zero floating-point arithmetic [PASSED]",
+    "Unit and API tests pass covering credit sale, partial repayment, overpayment rejection, and balance reconciliation [PASSED: 17/17 tests passing]"
+  ],
+  "status": "completed",
+  "completed_at": "2026-10-17T11:17:15+05:30",
+  "risk": "medium",
+  "budget": "balanced",
+  "allowed_write_scope": [
+    "backend/",
+    "frontend/",
+    "memory.md",
+    ".gravitas/"
+  ],
+  "verification": "impact",
+  "verdict": "PASS"
+}
