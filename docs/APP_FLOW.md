@@ -74,3 +74,11 @@ More
 -   Failed API: preserve form data where safe and offer retry.
 -   Stale data: show refresh state and avoid presenting old values as
     current.
+
+## 9. Business Management (Phase 2)
+
+1. Open Business Management to create a repayment schedule against a customer's unallocated outstanding credit.
+2. Record full or partial instalment payments; each recorded payment is posted once to the customer ledger and cashbook.
+3. Review overdue instalments, expense budgets, threshold alerts, and date-filtered reports.
+4. Acknowledge due-soon and overdue customer/supplier reminders in-app. No WhatsApp or SMS is sent.
+5. Dashboard surfaces next scheduled instalments, overdue plan count, and budget alert count. Forecast substitutes allocated debt collections with scheduled instalment dates and labels them estimates.

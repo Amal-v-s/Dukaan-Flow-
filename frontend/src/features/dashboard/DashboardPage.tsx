@@ -47,6 +47,9 @@ interface DashboardData {
     due_date: string
     status: string
   }>
+  next_installments_due: Array<{ plan_id: string; installment_id: string; customer_name: string; due_date: string; amount_paise: number }>
+  overdue_plan_count: number
+  budget_alert_count: number
 }
 
 interface CashAlert {
@@ -273,6 +276,20 @@ export const DashboardPage: React.FC = () => {
           statusText={data.forecast.has_shortage ? 'Shortage Detected' : 'Liquidity Safe'}
           subtext={`Lowest on ${formatDate(data.forecast.lowest_balance_date)}`}
         />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Link to="/management" className="rounded-xl border border-[#E8EAED] bg-white p-4 hover:border-[#16A36A]">
+          <p className="text-xs text-[#737780]">Next repayment instalments</p>
+          <strong className="text-lg">{data.next_installments_due.length}</strong>
+          <p className="mt-1 text-xs text-[#737780]">{data.next_installments_due[0] ? `${data.next_installments_due[0].customer_name} · ${formatPaiseToINR(data.next_installments_due[0].amount_paise)} due ${formatDate(data.next_installments_due[0].due_date)}` : 'No scheduled instalments'}</p>
+        </Link>
+        <Link to="/management" className="rounded-xl border border-[#E8EAED] bg-white p-4 hover:border-[#E9A23B]">
+          <p className="text-xs text-[#737780]">Overdue repayment plans</p><strong className="text-lg">{data.overdue_plan_count}</strong><p className="mt-1 text-xs text-[#737780]">Calculated from due dates and unpaid amounts</p>
+        </Link>
+        <Link to="/management" className="rounded-xl border border-[#E8EAED] bg-white p-4 hover:border-[#DC5555]">
+          <p className="text-xs text-[#737780]">Budget threshold alerts</p><strong className="text-lg">{data.budget_alert_count}</strong><p className="mt-1 text-xs text-[#737780]">Based on recorded expenses</p>
+        </Link>
       </div>
 
       {/* Lower Split: Upcoming Obligations vs Recent Transactions */}

@@ -17,6 +17,7 @@ from app.api.v1.seed import router as seed_router
 from app.api.v1.expenses import router as expenses_router
 from app.api.v1.alerts import router as alerts_router
 from app.api.v1.scenarios import router as scenarios_router
+from app.api.v1.management import router as management_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -116,3 +117,4 @@ app.include_router(seed_router)
 app.include_router(expenses_router)
 app.include_router(alerts_router)
 app.include_router(scenarios_router)
+app.include_router(management_router)

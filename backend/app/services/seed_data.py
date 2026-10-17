@@ -143,6 +143,10 @@ DEFAULT_SEED_DATA: Dict[str, Any] = {
             "payment_method": "cash",
         },
     ],
+    "repayment_plans": [],
+    "budgets": [],
+    "reminders": {},
+    "audit_events": [],
 }
 
 

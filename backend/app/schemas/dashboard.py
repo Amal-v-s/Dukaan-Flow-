@@ -39,3 +39,6 @@ class DashboardResponse(BaseModel):
     forecast: ForecastSummary
     recent_transactions: List[RecentTransactionDTO]
     upcoming_items: List[UpcomingItemDTO]
+    next_installments_due: List[dict] = []
+    overdue_plan_count: int = 0
+    budget_alert_count: int = 0

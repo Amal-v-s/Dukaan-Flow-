@@ -12,6 +12,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/cash-flow': { title: '14-Day Cash-Flow Forecast', subtitle: 'Deterministic projected liquidity and safety buffer alerts' },
   '/simulator': { title: 'What-If Cash Simulator', subtitle: 'Test hypothetical collections and bill shifts without altering actual records' },
   '/settings': { title: 'Store Settings', subtitle: 'Safety buffer configuration and business parameters' },
+  '/management': { title: 'Business Management', subtitle: 'Repayment schedules, budgets, reports, and in-app reminders' },
 }
 
 export const AppShell: React.FC = () => {
