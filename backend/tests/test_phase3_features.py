@@ -100,7 +100,7 @@ def test_gemini_adapter_uses_server_key_and_structured_response_format(monkeypat
     monkeypatch.setattr(ai_service.urllib.request, "urlopen", fake_urlopen)
     assert ai_service.GeminiProvider().generate("Use the supplied facts only.") == expected
     assert seen["key"] == "server-key" and "gemini-test-model:generateContent" in seen["url"]
-    assert seen["payload"]["generationConfig"]["responseFormat"]["text"]["mimeType"] == "application/json"
+    assert seen["payload"]["generationConfig"]["responseMimeType"] == "application/json"
 
 
 def test_reminder_draft_is_review_only_and_checks_customer():

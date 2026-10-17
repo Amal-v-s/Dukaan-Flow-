@@ -74,6 +74,10 @@ Every agent and developer working on this codebase must adhere strictly to these
 | **Phase 2A-2G** | Business Management Features | Repayment plans, instalments, overdue tracking, budgets, reports, in-app reminders, dashboard/forecast integration | ✅ **COMPLETED** | Codex |
 | **Phase 2H** | Release Hardening | Acceptance tests, accessibility/responsive review, full E2E, regression verification | ✅ **COMPLETED** | Antigravity (Gravitas) |
 | **All Phase 2** | **Full Definition of Done** | **Repayment Plans, Budgets, Reports, In-App Reminders, Acceptance Tests** | 🏆 **100% COMPLETE** | Antigravity (Gravitas) |
+| **Phase 3A-3G** | AI & Automation Features | Grounded explanations, business brief, reminder drafts, CSV import/export, notification preferences | ✅ **COMPLETED** | Antigravity (Gravitas) |
+| **Phase 3H** | Release Hardening & Verification | Security tests, live Gemini adapter verification, comprehensive test suite, E2E walkthrough | ✅ **COMPLETED** | Antigravity (Gravitas) |
+| **All Phase 3** | **Full Definition of Done** | **AI Grounding, Non-Mutation Invariant, CSV Safety/Rollback, Live Gemini Adapter** | 🏆 **100% COMPLETE** | Antigravity (Gravitas) |
+| **Phase 4** | Production Readiness & Launch | Pilot auth, tenant isolation, persistent Firestore, Cloud Run deployment, CI/CD | 📋 **NEXT ACTIVE** | Antigravity (Gravitas) |
 
 ---
 
@@ -254,9 +258,37 @@ Every agent and developer working on this codebase must adhere strictly to these
 * **Existing Phase 2 test suites:** Added by the user; do not modify them while implementing Phase 3.
 * **Safety constraints:** AI is optional and server-side. It receives minimized backend-calculated facts, cannot change ledger/report/forecast facts, and cannot send messages. Imports are staged, validated, previewed, and require explicit confirmation. External notification delivery remains disabled unless separately configured.
 * **Milestone 3A–3G demo slice implemented:** Added the isolated Gemini REST adapter/configuration and strict structured output, deterministic fallback, grounded alert/forecast/business brief/reminder-draft routes, report/record CSV exports with spreadsheet formula escaping, staged expense CSV preview/validation/idempotent confirmation, configurable in-app notification preferences, and frontend workflows for explanations, briefs, editable reminder drafts, exports, and imports. Updated the Phase 3 API, flow, architecture, testing, database, and AI documentation, plus README configuration guidance.
-* **Milestone 3H feature verification:** Added `backend/tests/test_phase3_features.py` with 18 tests covering provider-off/failure fallbacks, schema and source grounding, invalid numeric/URL claims, prompt-injection resilience, reminder drafts, safe exports, staged imports and compensating rollback, import limits/idempotency, rate limiting, and notification preference validation. `python -m pytest backend/tests/test_phase3_features.py -q`: **18 passed**. `python -m compileall -q backend/app`: passed. `npm run build` from `frontend`: TypeScript and Vite production build passed. `git diff --check`: passed. Phase 2 test files were left untouched.
+* **Milestone 3H feature verification & comprehensive testing:**
+  - Added `backend/tests/test_phase3_features.py` (18 tests) and `backend/tests/test_phase3_e2e_and_security.py` (17 tests).
+  - Total test suite: **80/80 tests passing** in 1.39s across Phase 1, Phase 2, and Phase 3:
+    * Alert explanation (`explain_alert`): deterministic fallback, AI grounding, missing alert (404), invalid source IDs.
+    * Business brief (`summarize_business`): 7-day and 14-day periods, cash flows, overdue plans, budget warnings, risk dates, valid suggested action targets.
+    * Reminder drafts (`draft_reminder`): review-only badge, customer/instalment resolution, zero-balance validation (400), mismatched instalment (404).
+    * CSV Exports: all 8 types (`customers`, `ledger`, `supplier-bills`, `supplier-payments`, `expenses`, `repayment-plans`, `budgets`, `reports`), formula escaping (`'`, `+`, `-`, `@`), date filter validation, empty filter (404).
+    * CSV Imports: template download, 1MB / 1,000-row limits, row-level validation, duplicate detection, batch cancellation, idempotent confirmation, and compensating rollback.
+    * AI Resilience: provider timeouts, malformed JSON, schema violations, invalid action targets fall back safely without 500 errors.
+    * AI Rate Limiting: 10 requests/minute bounded per host (429).
+    * End-to-End Walkthrough: complete user journey validated from shortage alert to explanation, business brief, reminder draft, export, and import reconciliation.
+    * Core deterministic isolation: verified 100% operational with AI disabled.
+  - Phase 2 test suites left completely untouched.
+  - Verification & Evidence:
+    * `python -m pytest backend`: **80 passed in 1.39s** (100% green).
+    * `npm run build`: **Built in 585ms** (TypeScript strict mode, 0 errors).
+* **Live Gemini AI Integration & Engine Verification:**
+  - Loaded `backend/.env` automatically in `backend/app/core/config.py` using `dotenv.load_dotenv()`.
+  - Resolved Google Gemini REST API Developer adapter compatibility in `backend/app/services/ai/service.py`:
+    * Configured `responseMimeType: "application/json"` and standard `responseSchema` (omitting unsupported `additionalProperties: False`).
+    * Configured `thinkingConfig: {"thinkingBudget": 0}` for `gemini-flash-latest` / `gemini-2.5-flash` to prevent reasoning tokens from exhausting the response token budget.
+    * Clamped generated candidate arrays (`suggested_actions[:3]`, `reasons[:5]`, `source_ids[:20]`) to enforce Pydantic schema boundaries before validation.
+    * Configured `GEMINI_MODEL=gemini-flash-latest` in `backend/.env` for active free-tier quota.
+  - Live empirical verification with real Gemini API key:
+    * `POST /api/v1/ai/explain-forecast`: verified live `MODE: ai_explanation` with grounded attribution chips (`bill_coastal_101`, `entry_ravi_1`, `entry_sharma_1`).
+    * `POST /api/v1/ai/explain-alert/{id}`: verified live `MODE: ai_explanation` identifying projected deficit and supplier bills.
+    * `POST /api/v1/ai/summarize-business`: verified live `MODE: ai_explanation` with 7-day brief and review action targets.
+    * `POST /api/v1/ai/draft-reminder`: verified live `MODE: ai_draft` with customer name, non-sent state, and review notice.
+  - Automated test suite remains 100% green: **80 passed in 1.13s**.
 * **Known release gaps:** The demo uses in-memory state and has no authentication or tenant authorization. The provider implementation uses the Gemini API key REST endpoint (disabled unless configured), not Vertex AI credentials. External notification delivery remains disabled. These must be addressed before production release; Phase 3 release evaluation, full end-to-end coverage, and cross-tenant authorization checks remain outstanding.
-* **Next Active Phase:** Phase 3H release hardening: complete authenticated tenant boundaries and persistence, add the documented evaluation/security/E2E coverage, then run Phase 1/2 regression tests without modifying the user's Phase 2 test files.
+* **Next Active Phase:** Phase 3 release hardening: production authenticated tenant boundaries and persistent Firestore integration.
 
 ---
 
@@ -290,4 +322,5 @@ Whenever you finish working on a phase or significant milestone:
 * [`docs/phase1_phases.md`](file:///d:/gch/Dukaan-Flow-/docs/phase1_phases.md) --- Detailed Phase 1 Subphases & DoD
 * [`docs/phase2_phases.md`](file:///d:/gch/Dukaan-Flow-/docs/phase2_phases.md) --- Detailed Phase 2 Subphases & DoD
 * [`docs/phase3_phases.md`](file:///d:/gch/Dukaan-Flow-/docs/phase3_phases.md) --- Detailed Phase 3 Subphases & DoD
+* [`docs/phase4_phases.md`](file:///d:/gch/Dukaan-Flow-/docs/phase4_phases.md) --- Detailed Phase 4 Subphases & DoD
 
